@@ -1,978 +1,1845 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BriSharks Student Feedback Framework</title>
-    
-    <!-- External Libraries -->
+    <title>PulseDesk — Email-to-Ticket Support System</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
                     colors: {
-                        brishark: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 800: '#075985', 900: '#0c4a6e' }
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        .sentiment-radio:checked + label { background-color: #0ea5e9; color: white; border-color: #0ea5e9; }
-        .sentiment-radio-bad:checked + label { background-color: #ef4444; border-color: #ef4444; color: white;}
-        .sentiment-radio-notsat:checked + label { background-color: #f97316; border-color: #f97316; color: white;}
-        .sentiment-radio-couldbe:checked + label { background-color: #eab308; border-color: #eab308; color: white;}
-        .sentiment-radio-sat:checked + label { background-color: #84cc16; border-color: #84cc16; color: white;}
-        .sentiment-radio-good:checked + label { background-color: #22c55e; border-color: #22c55e; color: white;}
-        
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Custom Scrollbars for crisp SaaS feel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .ticket-row-active {
+            background-color: #eef2ff !important;
+            border-left: 3px solid #4f46e5 !important;
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
     </style>
-
-    <!-- Google Tag Setup -->
-    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>
-    <script>
-      window.googletag = window.googletag || {cmd: []};
-      googletag.cmd.push(function() {
-        googletag.defineSlot('/23361982758/reward_ad_2', [[468, 60], [1024, 768], [768, 1024], [480, 320], [320, 50], [300, 100]], 'div-gpt-ad-1784033761949-0').addService(googletag.pubads());
-        googletag.enableServices();
-      });
-    </script>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white overflow-hidden">
 
-    <header class="bg-brishark-900 text-white p-6 shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-2xl font-bold flex items-center gap-2">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                    BriSharks Feedback Framework
-                </h1>
-                <p class="text-brishark-100 text-sm mt-1">Student Interview & Analytics Tool</p>
+    <!-- TOP NAVIGATION BAR -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 px-4 lg:px-6 h-16 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center space-x-3 sm:space-x-6">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-inner shadow-white/20">
+                    <i class="fa-solid fa-bolt-lightning text-white text-sm"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold tracking-tight text-base text-white">PulseDesk</span>
+                        <span class="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">MailEngine v2.4</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">Automated Gmail-to-Ticket Triage & Bulk Resolution Engine</p>
+                </div>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <button onclick="toggleView('interview')" id="btn-view-interview" class="bg-brishark-800 border border-brishark-600 hover:bg-brishark-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm font-bold ring-2 ring-white">Interview Form</button>
-                <button onclick="toggleView('analytics')" id="btn-view-analytics" class="bg-brishark-800 border border-brishark-600 hover:bg-brishark-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm opacity-70">Analytics Dashboard</button>
-                <button onclick="exportAllData()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow flex items-center gap-2 ml-4">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Export to CSV
+
+            <!-- Main View Switcher Tabs -->
+            <nav class="hidden md:flex items-center space-x-1 bg-slate-800/90 p-1 rounded-lg border border-slate-700/70">
+                <button onclick="switchMainTab('workspace')" id="tab-btn-workspace" class="px-3 py-1.5 rounded-md text-xs font-medium transition-all bg-brand-600 text-white shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-inbox"></i>
+                    <span>Ticket Workspace</span>
                 </button>
-            </div>
+                <button onclick="switchMainTab('guide')" id="tab-btn-guide" class="px-3 py-1.5 rounded-md text-xs font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50 flex items-center space-x-2">
+                    <i class="fa-solid fa-code"></i>
+                    <span>Email Connection & Apps Script Code</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Right Controls: Connection Status, Config & Sync -->
+        <div class="flex items-center space-x-2.5">
+            <!-- Mobile View Toggle -->
+            <button onclick="switchMainTab(currentTab === 'workspace' ? 'guide' : 'workspace')" class="md:hidden px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-700">
+                <i class="fa-solid fa-code mr-1 text-indigo-400"></i> <span id="mobile-tab-label">Setup Guide</span>
+            </button>
+
+            <!-- API Connection Status Pill -->
+            <button onclick="openConfigModal()" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition text-xs">
+                <span id="conn-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span id="conn-text" class="text-slate-200 font-medium hidden sm:inline">Demo Sandbox Mode</span>
+                <i class="fa-solid fa-gear text-slate-400 text-[11px] ml-1"></i>
+            </button>
+
+            <!-- Create Manual Ticket Button -->
+            <button onclick="openNewTicketModal()" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition">
+                <i class="fa-solid fa-plus text-indigo-400"></i>
+                <span>New Ticket</span>
+            </button>
+
+            <!-- Sync / Ingest Bulk Emails CTA -->
+            <button onclick="syncBulkEmails()" id="sync-btn" class="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white font-medium text-xs shadow-sm shadow-brand-600/30 transition cursor-pointer">
+                <i id="sync-icon" class="fa-solid fa-arrows-rotate"></i>
+                <span id="sync-label">Sync & Ingest Emails</span>
+            </button>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto p-4 md:p-6 flex flex-col min-h-screen">
-        
-        <!-- App Content Area -->
-        <div class="flex-grow mb-12">
-            <div id="view-interview" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Left Sidebar -->
-                <div class="lg:col-span-4 space-y-6">
-                    <!-- Step 1: Upload -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span class="bg-brishark-100 text-brishark-800 w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span> 
-                            Upload Student Data
-                        </h2>
-                        <label class="block w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 transition">
-                            <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                            <span class="text-sm text-gray-600 font-medium">Click to upload CSV</span>
-                            <input type="file" id="csv-file" accept=".csv" class="hidden" onchange="handleCSVUpload(event)">
-                        </label>
-                        <div id="upload-status" class="text-xs text-green-600 mt-3 font-medium hidden flex justify-between">
-                            <span>✓ Data Ready</span>
-                            <button onclick="clearAllData()" class="text-red-500 hover:underline">Clear Local Data</button>
+    <!-- ========================================== -->
+    <!-- VIEW 1: TICKET WORKSPACE                   -->
+    <!-- ========================================== -->
+    <div id="view-workspace" class="flex-1 flex flex-col overflow-hidden">
+
+        <!-- KPI TELEMETRY BAR -->
+        <section class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 shrink-0">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <!-- Pending Backlog -->
+                <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">Pending Backlog</span>
+                        <div class="flex items-baseline space-x-2 mt-0.5">
+                            <span id="kpi-pending" class="text-2xl font-bold text-slate-900">0</span>
+                            <span class="text-[11px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">Unresolved</span>
                         </div>
                     </div>
-
-                    <!-- Step 2: Select -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 transition-opacity duration-300" id="student-selector-card" style="opacity: 0.5; pointer-events: none;">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span class="bg-brishark-100 text-brishark-800 w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span> 
-                            Select Student
-                        </h2>
-                        <select id="student-dropdown" class="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:ring-brishark-500 focus:border-brishark-500 font-medium" onchange="loadStudentData()">
-                            <option value="">-- Waiting for CSV Upload --</option>
-                        </select>
-
-                        <div id="student-info" class="mt-5 hidden">
-                            <h3 class="text-sm font-bold text-brishark-800 border-b pb-2 mb-3">Interviewee Details</h3>
-                            <div class="grid grid-cols-2 gap-4 text-sm bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-                                <div><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Name</span><br><span id="info-name" class="font-bold text-gray-800"></span></div>
-                                <div><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">ID</span><br><span id="info-id" class="font-medium text-gray-700"></span></div>
-                                <div class="col-span-2"><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Email</span><br><span id="info-email" class="font-medium text-gray-700 truncate block"></span></div>
-                                <div><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Mobile</span><br><span id="info-mobile" class="font-medium text-gray-700"></span></div>
-                                <div><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Grade & Age</span><br><span id="info-grade-age" class="font-medium text-gray-700"></span></div>
-                                <div class="col-span-2"><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Location</span><br><span id="info-location" class="font-medium text-gray-700 truncate block"></span></div>
-                                <div class="col-span-2"><span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Website</span><br><span id="info-website" class="font-medium text-gray-500 break-all block"></span></div>
-                            </div>
-                        </div>
+                    <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                        <i class="fa-solid fa-envelope-open-text"></i>
                     </div>
                 </div>
 
-                <!-- Right Side: Interview Form -->
-                <div class="lg:col-span-8">
-                    <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 transition-opacity duration-300" id="interview-form-card" style="opacity: 0.5; pointer-events: none;">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b pb-4 gap-2">
-                            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                <span class="bg-brishark-100 text-brishark-800 w-8 h-8 rounded-full flex items-center justify-center text-lg">3</span> 
-                                Interview Form
-                                <span id="draft-indicator" class="hidden text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full ml-2"></span>
-                            </h2>
-                            <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">Interviewing: <span id="current-interviewee" class="font-bold text-brishark-700">None selected</span></span>
+                <!-- Urgent / High Priority -->
+                <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">Urgent & High</span>
+                        <div class="flex items-baseline space-x-2 mt-0.5">
+                            <span id="kpi-urgent" class="text-2xl font-bold text-rose-600">0</span>
+                            <span class="text-[11px] font-medium text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/60">Needs Action</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center">
+                        <i class="fa-solid fa-fire-flame-curved"></i>
+                    </div>
+                </div>
+
+                <!-- Resolved Today -->
+                <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">Resolved Tickets</span>
+                        <div class="flex items-baseline space-x-2 mt-0.5">
+                            <span id="kpi-resolved" class="text-2xl font-bold text-emerald-600">0</span>
+                            <span id="kpi-resolution-rate" class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">0% Cleared</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+
+                <!-- Average Response SLA -->
+                <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">Avg First Response</span>
+                        <div class="flex items-baseline space-x-2 mt-0.5">
+                            <span class="text-2xl font-bold text-slate-900">14m</span>
+                            <span class="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200/60">SLA &lt; 2h</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </div>
+                </div>
+
+                <!-- Auto-Triage Rules Status -->
+                <div class="bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-xl p-3 flex items-center justify-between col-span-2 sm:col-span-1">
+                    <div>
+                        <span class="text-[10px] font-mono uppercase tracking-wider text-indigo-300 block">Smart Auto-Triage</span>
+                        <p class="text-xs font-semibold text-white mt-0.5">Keyword Priority Active</p>
+                        <p class="text-[11px] text-slate-300 mt-0.5">Last sync: <span id="last-sync-time" class="font-mono text-indigo-200">Just now</span></p>
+                    </div>
+                    <button onclick="switchMainTab('guide')" title="View Apps Script Pipeline" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition shrink-0">
+                        Pipeline <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FILTER, SEARCH & BULK ACTION TOOLBAR -->
+        <section class="bg-white border-b border-slate-200 px-4 lg:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <!-- Left: Search + Status Filter Pills -->
+            <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                <!-- Search Input -->
+                <div class="relative w-full sm:w-64 md:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="search-input" oninput="applyFilters()" placeholder="Search ID, email, customer, subject..." class="w-full pl-8 pr-7 py-1.5 bg-slate-100 hover:bg-slate-100/80 focus:bg-white rounded-lg border border-slate-200 focus:border-brand-500 focus:outline-none text-xs text-slate-800 placeholder-slate-400 transition">
+                    <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Status Filter Pills -->
+                <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/80 overflow-x-auto max-w-full">
+                    <button onclick="setStatusFilter('ALL')" data-filter="ALL" class="status-pill px-2.5 py-1 rounded-md text-xs font-medium transition bg-white text-slate-900 shadow-sm">
+                        All
+                    </button>
+                    <button onclick="setStatusFilter('Open')" data-filter="Open" class="status-pill px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-600 hover:text-slate-900">
+                        Open
+                    </button>
+                    <button onclick="setStatusFilter('In Progress')" data-filter="In Progress" class="status-pill px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-600 hover:text-slate-900">
+                        In Progress
+                    </button>
+                    <button onclick="setStatusFilter('Urgent')" data-filter="Urgent" class="status-pill px-2.5 py-1 rounded-md text-xs font-medium transition text-rose-600 hover:bg-rose-50">
+                        <i class="fa-solid fa-bolt text-[10px] mr-1"></i>Urgent
+                    </button>
+                    <button onclick="setStatusFilter('Resolved')" data-filter="Resolved" class="status-pill px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-600 hover:text-slate-900">
+                        Resolved
+                    </button>
+                </div>
+
+                <!-- Category Dropdown -->
+                <select id="category-filter" onchange="applyFilters()" class="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500">
+                    <option value="ALL">All Categories</option>
+                    <option value="Billing">Billing & Refund</option>
+                    <option value="Technical">Technical Bug</option>
+                    <option value="Account">Account & Access</option>
+                    <option value="Shipping">Order & Delivery</option>
+                    <option value="General">General Inquiry</option>
+                </select>
+            </div>
+
+            <!-- Right: Bulk Action Bar (Dynamic when items checked) + Quick Sort -->
+            <div class="flex items-center space-x-2">
+                <!-- Bulk Action Bar -->
+                <div id="bulk-action-bar" class="hidden items-center space-x-2 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-lg animate-fade-in">
+                    <span class="text-xs font-semibold text-indigo-900"><span id="selected-count">0</span> selected</span>
+                    <div class="h-3.5 w-[1px] bg-indigo-200"></div>
+                    <button onclick="openBulkResolveModal()" class="text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white px-2.5 py-1 rounded-md shadow-sm transition flex items-center space-x-1">
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                        <span>Bulk Reply & Resolve</span>
+                    </button>
+                    <button onclick="bulkChangePriority('Urgent')" class="text-xs font-medium text-rose-700 hover:bg-rose-100 px-2 py-1 rounded transition" title="Escalate Selected to Urgent">
+                        <i class="fa-solid fa-arrow-up"></i> Urgent
+                    </button>
+                    <button onclick="clearBulkSelection()" class="text-xs text-slate-500 hover:text-slate-700 px-1.5">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Fast Triage Backlog Helper Button -->
+                <button onclick="selectAllOpenTickets()" class="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-lg border border-slate-200 transition" title="Select all currently filtered Open tickets for 1-click bulk resolution">
+                    <i class="fa-solid fa-check-double mr-1 text-brand-600"></i>Select All Open
+                </button>
+            </div>
+        </section>
+
+        <!-- MAIN SPLIT-PANE WORKSPACE -->
+        <div class="flex-1 flex overflow-hidden relative">
+
+            <!-- LEFT / MAIN TICKET TABLE LIST -->
+            <div class="flex-1 flex flex-col overflow-hidden bg-white">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50/95 sticky top-0 z-10 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <tr>
+                                <th class="py-2.5 pl-4 pr-2 w-9">
+                                    <input type="checkbox" id="master-checkbox" onchange="toggleSelectAll(this)" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                                </th>
+                                <th class="py-2.5 px-2.5 w-28">Ticket ID</th>
+                                <th class="py-2.5 px-2.5 w-24">Priority</th>
+                                <th class="py-2.5 px-3 w-52">Customer</th>
+                                <th class="py-2.5 px-3">Email Subject & Snippet</th>
+                                <th class="py-2.5 px-2.5 w-28 hidden xl:table-cell">Category</th>
+                                <th class="py-2.5 px-2.5 w-28 hidden md:table-cell">Received</th>
+                                <th class="py-2.5 pl-2.5 pr-4 w-28 text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticket-table-body" class="divide-y divide-slate-100 text-xs">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+
+                    <!-- Empty State -->
+                    <div id="empty-state" class="hidden py-16 px-4 text-center">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-lg">
+                            <i class="fa-solid fa-inbox"></i>
+                        </div>
+                        <h3 class="text-sm font-semibold text-slate-800">No matching email tickets</h3>
+                        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">All tickets matching your filter have been cleared, or try resetting your search query.</p>
+                        <button onclick="resetFilters()" class="mt-3 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-600 font-medium text-xs hover:bg-brand-100 transition">
+                            Reset All Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Footer Status -->
+                <div class="bg-slate-50 border-t border-slate-200 px-4 py-2 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+                    <div>
+                        Showing <span id="showing-count" class="font-semibold text-slate-700">0</span> of <span id="total-count" class="font-semibold text-slate-700">0</span> converted email tickets
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="hidden sm:inline"><i class="fa-regular fa-keyboard mr-1"></i>Click any ticket row to inspect & send direct Gmail reply</span>
+                        <span class="font-mono text-[10px] text-slate-400">Auto-deduplication: Thread-ID locked</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT SLIDE-OVER / DETAIL INSPECTION & REPLY DRAWER -->
+            <aside id="ticket-drawer" class="w-full sm:w-[460px] lg:w-[520px] xl:w-[560px] bg-white border-l border-slate-200 flex flex-col shrink-0 shadow-2xl sm:shadow-none absolute sm:static inset-0 z-20 transition-transform duration-200 translate-x-full sm:translate-x-0">
+                <!-- Empty Selection Placeholder (Desktop) -->
+                <div id="drawer-empty" class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-brand-600 flex items-center justify-center text-xl mb-3 shadow-sm">
+                        <i class="fa-regular fa-envelope-open"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-slate-800">Select a Ticket to Triage & Reply</h3>
+                    <p class="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                        Inspect the original customer email, apply 1-click response macros, or trigger an instant Gmail thread reply & status resolution.
+                    </p>
+                </div>
+
+                <!-- Active Ticket Detail Content -->
+                <div id="drawer-content" class="hidden flex-1 flex flex-col overflow-hidden">
+                    <!-- Drawer Header -->
+                    <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0">
+                        <div class="flex items-center space-x-2.5">
+                            <button onclick="closeDrawerMobile()" class="sm:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-200/60">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <span id="detail-id" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-200/80 text-slate-800">TKT-1042</span>
+                            <span id="detail-thread-id" class="font-mono text-[10px] text-slate-400 hidden md:inline" title="Gmail Thread ID">thread_18f92a</span>
                         </div>
 
-                        <form id="feedbackForm" onsubmit="saveFeedback(event)">
-                            
-                            <!-- Section 1: Feature Ratings -->
-                            <div class="mb-8">
-                                <div class="bg-brishark-50 border-l-4 border-brishark-500 p-4 mb-6 rounded-r-lg">
-                                    <h3 class="text-lg font-bold text-brishark-900">1. Feature Ratings (Sentiment Analysis)</h3>
-                                    <p class="text-sm text-gray-600">Select the sentiment category for specific parts of the platform.</p>
+                        <!-- Quick Priority & Status Selectors -->
+                        <div class="flex items-center space-x-2">
+                            <select id="detail-priority-select" onchange="updateActiveTicketField('priority', this.value)" class="text-xs font-semibold rounded-lg px-2 py-1 border border-slate-200 bg-white focus:outline-none focus:border-brand-500 cursor-pointer">
+                                <option value="Urgent">🔴 Urgent</option>
+                                <option value="High">🟠 High</option>
+                                <option value="Medium">🔵 Medium</option>
+                                <option value="Low">⚪ Low</option>
+                            </select>
+
+                            <select id="detail-status-select" onchange="updateActiveTicketField('status', this.value)" class="text-xs font-semibold rounded-lg px-2.5 py-1 border border-slate-200 bg-white focus:outline-none focus:border-brand-500 cursor-pointer">
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Email Thread & Metadata -->
+                    <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                        <!-- Subject & Category Header -->
+                        <div>
+                            <div class="flex items-center space-x-2 mb-1.5">
+                                <span id="detail-category-badge" class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60">Billing</span>
+                                <span id="detail-timestamp" class="text-[11px] text-slate-400">Oct 17, 10:14 AM</span>
+                            </div>
+                            <h2 id="detail-subject" class="text-base font-bold text-slate-900 leading-snug">Double charged on annual Pro subscription invoice #INV-9921</h2>
+                        </div>
+
+                        <!-- Customer Card -->
+                        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/80 flex items-center justify-between">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div id="detail-avatar" class="w-9 h-9 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                                    AR
                                 </div>
-                                
-                                <div class="space-y-4">
-                                    <div class="bg-white p-4 border rounded-lg shadow-sm">
-                                        <label class="block font-semibold text-gray-800 mb-3">Smoothness: "How smooth and easy is it to use the BriSharks platform?"</label>
-                                        <div class="flex flex-wrap gap-2" id="rad_f_smoothness"></div>
-                                    </div>
-                                    <div class="bg-white p-4 border rounded-lg shadow-sm">
-                                        <label class="block font-semibold text-gray-800 mb-3">Engagement of Video: "How fun and interesting are the lesson videos?"</label>
-                                        <div class="flex flex-wrap gap-2" id="rad_f_video"></div>
-                                    </div>
-                                    
-                                    <!-- Conditional: Has Website -->
-                                    <div id="cond_website_yes" class="space-y-4 hidden">
-                                        <div class="bg-blue-50/50 p-4 border border-blue-200 rounded-lg shadow-sm">
-                                            <div class="text-xs text-blue-500 font-bold mb-1 uppercase tracking-wider">Has Website</div>
-                                            <label class="block font-semibold text-gray-800 mb-3">Rate your Website: "How much do you love the startup website you built?"</label>
-                                            <div class="flex flex-wrap gap-2" id="rad_f_website"></div>
-                                        </div>
-                                        <div class="bg-blue-50/50 p-4 border border-blue-200 rounded-lg shadow-sm">
-                                            <label class="block font-semibold text-gray-800 mb-3">Rate your Founder Page: "How cool is your Founder Profile page?"</label>
-                                            <div class="flex flex-wrap gap-2" id="rad_f_founder"></div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Conditional: No Website -->
-                                    <div id="cond_website_no" class="space-y-4 hidden">
-                                        <div class="bg-yellow-50/50 p-4 border border-yellow-200 rounded-lg shadow-sm">
-                                            <div class="text-xs text-yellow-600 font-bold mb-1 uppercase tracking-wider">No Website Yet</div>
-                                            <label class="block font-semibold text-gray-800 mb-3">Clarity: "How clear are the steps to build your future website?"</label>
-                                            <div class="flex flex-wrap gap-2" id="rad_f_clarity"></div>
-                                        </div>
-                                        <div class="bg-yellow-50/50 p-4 border border-yellow-200 rounded-lg shadow-sm">
-                                            <label class="block font-semibold text-gray-800 mb-3">Idea Excitement: "How excited are you to eventually create your Founder Profile?"</label>
-                                            <div class="flex flex-wrap gap-2" id="rad_f_excitement"></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="bg-white p-4 border rounded-lg shadow-sm">
-                                        <label class="block font-semibold text-gray-800 mb-3">Pitch Data Gathering: "How easy was it to gather data and build your Pitch?"</label>
-                                        <div class="flex flex-wrap gap-2" id="rad_f_pitch"></div>
-                                    </div>
+                                <div class="min-w-0">
+                                    <p id="detail-customer-name" class="text-xs font-bold text-slate-900 truncate">Ananya Rao</p>
+                                    <p id="detail-customer-email" class="text-[11px] font-mono text-slate-500 truncate">ananya.rao@finverse.io</p>
                                 </div>
                             </div>
+                            <button onclick="copyCustomerEmail()" class="text-[11px] text-slate-500 hover:text-brand-600 px-2 py-1 rounded border border-transparent hover:border-slate-200 hover:bg-white transition shrink-0" title="Copy Customer Email">
+                                <i class="fa-regular fa-copy mr-1"></i>Copy
+                            </button>
+                        </div>
 
-                            <!-- Section 2: MOM Questions -->
-                            <div class="mb-8">
-                                <div class="bg-purple-50 border-l-4 border-purple-500 p-4 mb-6 rounded-r-lg">
-                                    <h3 class="text-lg font-bold text-purple-900">2. Platform Usage & The "Aha!" Moment (MOM)</h3>
-                                    <p class="text-sm text-gray-600">Understand the student's timeline and value realization.</p>
-                                </div>
-                                
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">When was the last time you logged into BriSharks?</label>
-                                        <input type="text" id="q_last_login" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-purple-500 focus:border-purple-500" placeholder="e.g., Yesterday, last week...">
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">When did your business idea first 'click' in your mind? Was it before you joined, or while working on the platform?</label>
-                                        <textarea id="q_aha_moment" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-purple-500 focus:border-purple-500" placeholder="Student's answer..."></textarea>
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">At which chapter or stage did you start analyzing your idea to see if it would actually work in the real world?</label>
-                                        <input type="text" id="q_analysis_stage" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-purple-500 focus:border-purple-500" placeholder="e.g., Chapter 3, Market Research...">
-                                    </div>
-                                </div>
+                        <!-- Original Incoming Email Body -->
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="bg-slate-50 px-3.5 py-2 border-b border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500">
+                                <span><i class="fa-solid fa-envelope text-slate-400 mr-1.5"></i>Incoming Customer Email</span>
+                                <span class="font-mono text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Ingested via GmailApp</span>
                             </div>
-
-                            <!-- Section 3: PMF & Emotion -->
-                            <div class="mb-8">
-                                <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-lg">
-                                    <h3 class="text-lg font-bold text-orange-900">3. Product-Market Fit & Emotion (PMF)</h3>
-                                </div>
-                                
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">While building your idea, did you feel a sense of comfort that BriSharks was the exact platform you needed? Why?</label>
-                                        <textarea id="q_comfort_fit" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-orange-500 focus:border-orange-500"></textarea>
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">Did you ever get stuck on a lesson and wish you had a real person to help? If yes, where did you get stuck?</label>
-                                        <textarea id="q_mentor_need" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-orange-500 focus:border-orange-500"></textarea>
-                                    </div>
-                                    
-                                    <!-- Conditional Sharing -->
-                                    <div id="cond_share_yes" class="hidden">
-                                        <label class="block font-medium text-gray-700 mb-1">Have you shared your startup website with your friends? What was their reaction?</label>
-                                        <textarea id="q_shared_friends" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-orange-500 focus:border-orange-500"></textarea>
-                                    </div>
-                                    <div id="cond_share_no" class="hidden">
-                                        <label class="block font-medium text-gray-700 mb-1">Who do you plan to share your idea with once it's ready, and what reaction do you hope for?</label>
-                                        <textarea id="q_share_plan" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-orange-500 focus:border-orange-500"></textarea>
-                                    </div>
-
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">Do you feel that this platform successfully helped you launch a real startup?</label>
-                                        <select id="q_success_feeling" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-orange-500 focus:border-orange-500">
-                                            <option value="">Select...</option>
-                                            <option value="Yes, absolutely">Yes, absolutely</option>
-                                            <option value="Yes, somewhat">Yes, somewhat</option>
-                                            <option value="Not really">Not really</option>
-                                            <option value="No">No</option>
-                                        </select>
-                                    </div>
-                                </div>
+                            <div id="detail-body" class="p-4 text-xs text-slate-700 leading-relaxed whitespace-pre-line font-normal">
                             </div>
+                        </div>
 
-                            <!-- Section 4: Journey & Roadblocks -->
-                            <div class="mb-8">
-                                <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 rounded-r-lg">
-                                    <h3 class="text-lg font-bold text-indigo-900">4. Journey Status & Roadblocks</h3>
-                                </div>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">Current Journey Status</label>
-                                        <select id="q_journey_status" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-indigo-500 focus:border-indigo-500" onchange="toggleJourneyFields()">
-                                            <option value="">Select Status...</option>
-                                            <option value="Completed">Completed successfully</option>
-                                            <option value="In Progress">In Progress (Active)</option>
-                                            <option value="Stuck">Stuck / Needs Help</option>
-                                            <option value="Dropped Out">Dropped Out</option>
-                                        </select>
-                                    </div>
-                                    <div id="wrap_completed" class="hidden bg-indigo-50/50 p-4 border border-indigo-100 rounded-lg">
-                                        <label class="block font-medium text-indigo-900 mb-1">What was the most rewarding part of completing your startup?</label>
-                                        <textarea id="q_completed_reward" rows="2" class="w-full border border-indigo-300 rounded-lg p-3"></textarea>
-                                    </div>
-                                    <div id="wrap_stuck" class="hidden bg-red-50 p-4 border border-red-200 rounded-lg">
-                                        <label class="block font-medium text-red-900 mb-1">Exactly where are you stuck, and what is confusing you?</label>
-                                        <textarea id="q_stuck_reason" rows="2" class="w-full border border-red-300 rounded-lg p-3"></textarea>
-                                    </div>
-                                </div>
+                        <!-- Previous Resolution / Reply Log (Shown if resolved or replied) -->
+                        <div id="detail-resolution-box" class="hidden bg-emerald-50/70 rounded-xl border border-emerald-200 p-3.5 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-bold text-emerald-800 flex items-center">
+                                    <i class="fa-solid fa-check-circle text-emerald-600 mr-1.5"></i>Sent Resolution & Thread Reply
+                                </span>
+                                <span id="detail-resolved-at" class="text-[10px] font-mono text-emerald-700">Resolved</span>
                             </div>
+                            <p id="detail-resolution-text" class="text-xs text-emerald-900 whitespace-pre-line leading-relaxed"></p>
+                        </div>
+                    </div>
 
-                            <!-- Section 5: Growth & Referrals -->
-                            <div class="mb-8">
-                                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg">
-                                    <h3 class="text-lg font-bold text-green-900">5. Growth & Referrals</h3>
-                                </div>
-                                
-                                <div class="space-y-6">
-                                    <div class="bg-gray-50 p-5 border border-gray-200 rounded-lg">
-                                        <label class="block font-bold text-gray-800 mb-3">NPS Score: On a scale of 0-10, how likely are you to recommend BriSharks to a friend?</label>
-                                        <div class="flex flex-wrap gap-2" id="nps_container">
-                                            <!-- Injected by JS -->
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">How would you describe BriSharks to a friend? What is BriSharks to you?</label>
-                                        <textarea id="q_describe_friend" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-green-500 focus:border-green-500"></textarea>
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">What new features or tools do you need to make BriSharks even more helpful for you?</label>
-                                        <textarea id="q_new_features" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-green-500 focus:border-green-500"></textarea>
-                                    </div>
-                                </div>
+                    <!-- Reply & Fast Resolution Composer Footer -->
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 shrink-0 space-y-2.5">
+                        <!-- Quick Macro / Canned Response Bar + Smart AI Draft -->
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center space-x-1.5 flex-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-brand-600 text-xs"></i>
+                                <select id="macro-select" onchange="applyCannedMacro(this.value)" class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-brand-500">
+                                    <option value="">⚡ Insert Fast Resolution Macro...</option>
+                                    <option value="refund">💰 Billing: Duplicate Charge Refunded (3-5 days)</option>
+                                    <option value="password">🔐 Account: Password / 2FA Reset Link Dispatched</option>
+                                    <option value="shipping">📦 Order: Express Tracking & Carrier Escalation</option>
+                                    <option value="bug">🛠️ Technical: Engineering Hotfix Deployed</option>
+                                    <option value="ack">👋 General: Priority Escalation Acknowledgment</option>
+                                </select>
                             </div>
+                            <button onclick="generateSmartDraft()" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-brand-700 border border-indigo-200/80 text-xs font-semibold transition shrink-0 flex items-center space-x-1" title="Auto-craft contextual reply based on ticket category & customer name">
+                                <i class="fa-solid fa-robot text-[11px]"></i>
+                                <span>Smart Draft</span>
+                            </button>
+                        </div>
 
-                            <!-- Section 6: Follow Up -->
-                            <div class="mb-8">
-                                <div class="bg-gray-100 border-l-4 border-gray-600 p-4 mb-6 rounded-r-lg">
-                                    <h3 class="text-lg font-bold text-gray-900">6. Follow-up & Reminders</h3>
-                                    <p class="text-sm text-gray-600">Schedule optional callbacks. Will auto-draft an email to yash@bribooks.com at the scheduled time.</p>
-                                </div>
-                                <div class="space-y-4 bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">Follow-up Notes / Reason <span class="text-gray-400 font-normal">(Optional)</span></label>
-                                        <input type="text" id="q_followup_notes" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-gray-500 focus:border-gray-500" placeholder="e.g., Call back to discuss new feature...">
-                                    </div>
-                                    <div>
-                                        <label class="block font-medium text-gray-700 mb-1">Schedule Call Time <span class="text-gray-400 font-normal">(Optional)</span></label>
-                                        <input type="datetime-local" id="q_followup_time" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-gray-500 focus:border-gray-500">
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Reply Textarea -->
+                        <textarea id="reply-textarea" rows="4" placeholder="Write your email response here... Sending will reply directly to the customer's Gmail thread and mark this ticket Resolved." class="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/15 resize-none"></textarea>
 
-                            <div class="pt-4 border-t flex justify-end">
-                                <button type="submit" class="bg-brishark-600 hover:bg-brishark-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:-translate-y-0.5">
-                                    Save Feedback Entry
+                        <!-- Action Buttons -->
+                        <div class="flex items-center justify-between pt-0.5">
+                            <label class="flex items-center space-x-2 text-[11px] text-slate-600 cursor-pointer select-none">
+                                <input type="checkbox" id="send-email-checkbox" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                <span>Send reply via <code class="font-mono text-[10px] bg-slate-200/70 px-1 py-0.5 rounded">GmailApp</code> thread</span>
+                            </label>
+
+                            <div class="flex items-center space-x-2">
+                                <button onclick="saveNoteOrProgress()" class="px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition">
+                                    Save as In Progress
+                                </button>
+                                <button onclick="submitReplyAndResolve()" id="resolve-submit-btn" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/20 transition flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-paper-plane text-[11px]"></i>
+                                    <span>Send Reply & Resolve</span>
                                 </button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analytics Dashboard View -->
-            <div id="view-analytics" class="hidden space-y-6">
-                <!-- Top Stats -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-center items-center">
-                        <h3 class="text-gray-500 font-bold uppercase tracking-wider text-[10px] mb-1 text-center">Total Feedbacks</h3>
-                        <div class="text-3xl font-black text-brishark-600" id="dash-total">0</div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-center items-center">
-                        <h3 class="text-gray-500 font-bold uppercase tracking-wider text-[10px] mb-1 text-center">Overall NPS</h3>
-                        <div class="text-3xl font-black text-green-500 flex items-baseline gap-1" id="dash-nps">N/A</div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-center items-center">
-                        <h3 class="text-gray-500 font-bold uppercase tracking-wider text-[10px] mb-1 text-center">Graduation Rate</h3>
-                        <div class="text-3xl font-black text-indigo-500" id="dash-completion">0%</div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-center items-center">
-                        <h3 class="text-gray-500 font-bold uppercase tracking-wider text-[10px] mb-1 text-center">Felt Successful</h3>
-                        <div class="text-3xl font-black text-orange-500" id="dash-success">0%</div>
-                    </div>
-                </div>
-
-                <!-- Charts Row 1 -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Sentiment Stacked Bar -->
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                        <h3 class="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Feature Sentiment Breakdown</h3>
-                        <div class="relative h-[300px]">
-                            <canvas id="chart-features"></canvas>
-                        </div>
-                    </div>
-                    <!-- NPS Doughnut -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                        <h3 class="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">NPS Breakdown</h3>
-                        <div class="relative h-[300px]">
-                            <canvas id="chart-nps"></canvas>
                         </div>
                     </div>
                 </div>
+            </aside>
 
-                <!-- Charts Row 2 -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Journey Status -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                        <h3 class="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Journey Status</h3>
-                        <div class="relative h-[250px]">
-                            <canvas id="chart-journey"></canvas>
-                        </div>
-                    </div>
-                    <!-- PMF Success -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                        <h3 class="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Felt It Helped Launch Startup?</h3>
-                        <div class="relative h-[250px]">
-                            <canvas id="chart-success"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Qualitative Feeds Row -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Roadblocks -->
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-[400px]">
-                        <h3 class="text-sm font-bold text-red-700 mb-3 flex justify-between items-center bg-red-50 p-2 rounded-lg">
-                            🚧 Roadblocks (Stuck)
-                            <span class="bg-white text-red-600 text-xs px-2 py-1 rounded-full border border-red-200" id="dash-stuck-count">0</span>
-                        </h3>
-                        <div class="flex-1 overflow-y-auto space-y-3 pr-2 text-sm" id="feed-roadblocks"></div>
-                    </div>
-                    <!-- Feature Requests -->
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-[400px]">
-                        <h3 class="text-sm font-bold text-green-700 mb-3 flex justify-between items-center bg-green-50 p-2 rounded-lg">
-                            💡 Feature Requests
-                        </h3>
-                        <div class="flex-1 overflow-y-auto space-y-3 pr-2 text-sm" id="feed-features"></div>
-                    </div>
-                    <!-- Aha Moments -->
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-[400px]">
-                        <h3 class="text-sm font-bold text-purple-700 mb-3 flex justify-between items-center bg-purple-50 p-2 rounded-lg">
-                            ✨ "Aha!" Moments
-                        </h3>
-                        <div class="flex-1 overflow-y-auto space-y-3 pr-2 text-sm" id="feed-aha"></div>
-                    </div>
-                </div>
-            </div>
         </div>
+    </div>
 
-        <!-- Ad Placement Section -->
-        <div class="mt-8 border-t border-gray-200 pt-8 w-full flex justify-center items-center overflow-x-auto bg-gray-50 rounded-xl p-4 shadow-inner">
-            <!-- /23361982758/reward_ad_2 -->
-            <div id='div-gpt-ad-1784033761949-0' style='min-width: 300px; min-height: 50px;' class="bg-white rounded-lg shadow border border-gray-100 flex justify-center items-center text-gray-300">
-              <script>
-                googletag.cmd.push(function() { googletag.display('div-gpt-ad-1784033761949-0'); });
-              </script>
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: EMAIL CONNECTION PROCESS & APPS SCRIPT BACKEND CODE           -->
+    <!-- ===================================================================== -->
+    <div id="view-guide" class="hidden flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-6xl mx-auto space-y-6">
+
+            <!-- Banner Header -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-lg border border-indigo-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div class="space-y-2 max-w-2xl">
+                    <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-mono">
+                        <i class="fa-solid fa-plug-circle-check"></i>
+                        <span>Zero-Cost Serverless Architecture • Google Workspace Native</span>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">How to Connect Your Gmail Inbox & Clear Bulk Backlogs</h1>
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        Convert thousands of pending unread support emails into structured tickets automatically using <strong>Google Sheets</strong> as your real-time database and <strong>Google Apps Script</strong> as your REST API & email dispatcher.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-3 shrink-0">
+                    <button onclick="openConfigModal()" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md transition flex items-center space-x-2">
+                        <i class="fa-solid fa-link"></i>
+                        <span>Connect Web App URL</span>
+                    </button>
+                    <button onclick="switchMainTab('workspace')" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-xs border border-white/15 transition">
+                        Back to Ticket Dashboard
+                    </button>
+                </div>
             </div>
-        </div>
-    </main>
 
-    <!-- Custom Modal Overlay (Replaces alerts and confirms) -->
-    <div id="custom-modal" class="fixed inset-0 bg-gray-900/50 hidden z-[100] flex items-center justify-center backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 transform transition-all border border-gray-100">
-            <h3 id="modal-title" class="text-lg font-bold text-gray-900 mb-2">Message</h3>
-            <p id="modal-message" class="text-gray-600 mb-6 text-sm"></p>
-            <div id="modal-actions" class="flex justify-end gap-3">
-                <!-- Action buttons injected via JS -->
+            <!-- Architecture Flow Diagram -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                    <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200">Stage 1 • Ingestion</span>
+                    <h3 class="text-sm font-bold text-slate-900 mt-2"><i class="fa-solid fa-envelope text-rose-500 mr-1.5"></i>Gmail Support Inbox</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Apps Script scans <code class="bg-slate-100 px-1 rounded">is:unread</code> threads in batches, extracts sender, subject, body, and Gmail Thread ID, and applies label <code class="bg-slate-100 px-1 rounded">Ticketed</code>.
+                    </p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Stage 2 • Auto-Triage</span>
+                    <h3 class="text-sm font-bold text-slate-900 mt-2"><i class="fa-solid fa-filter text-amber-500 mr-1.5"></i>Smart Keyword Classifier</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Automatically assigns Priority (<code class="bg-slate-100 px-1 rounded">Urgent</code>, <code class="bg-slate-100 px-1 rounded">High</code>) and Category (<code class="bg-slate-100 px-1 rounded">Billing</code>, <code class="bg-slate-100 px-1 rounded">Technical</code>) based on email keywords.
+                    </p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Stage 3 • Database</span>
+                    <h3 class="text-sm font-bold text-slate-900 mt-2"><i class="fa-solid fa-table text-emerald-600 mr-1.5"></i>Google Sheets DB + API</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Stores every ticket in a structured sheet and exposes <code class="bg-slate-100 px-1 rounded">doGet()</code> and <code class="bg-slate-100 px-1 rounded">doPost()</code> JSON endpoints for this HTML dashboard.
+                    </p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">Stage 4 • Bulk Closure</span>
+                    <h3 class="text-sm font-bold text-slate-900 mt-2"><i class="fa-solid fa-reply-all text-indigo-600 mr-1.5"></i>1-Click Thread Reply</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Resolving a ticket (single or bulk) replies directly inside the customer's Gmail thread and updates the Sheet status to <code class="bg-slate-100 px-1 rounded">Resolved</code>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Two-Column Step-by-Step Guide & Ready-to-Copy Apps Script -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- Left 5 Cols: Step-by-step Setup Checklist -->
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                        <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">✓</span>
+                        <span>5-Minute Connection Checklist</span>
+                    </h2>
+
+                    <ol class="space-y-4 text-xs text-slate-600">
+                        <li class="flex space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 border border-slate-300 text-slate-800 font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                            <div>
+                                <p class="font-bold text-slate-900">Create Your Google Sheet Database</p>
+                                <p class="mt-0.5 leading-relaxed">Create a new Google Sheet named <strong>Support_Tickets_DB</strong>. Rename the first tab to <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">Tickets</code>.</p>
+                            </div>
+                        </li>
+                        <li class="flex space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 border border-slate-300 text-slate-800 font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                            <div>
+                                <p class="font-bold text-slate-900">Paste the Backend Apps Script</p>
+                                <p class="mt-0.5 leading-relaxed">In your Google Sheet, click <strong>Extensions &rarr; Apps Script</strong>. Delete any existing code and paste the complete <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">Code.gs</code> script from the right panel.</p>
+                            </div>
+                        </li>
+                        <li class="flex space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 border border-slate-300 text-slate-800 font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                            <div>
+                                <p class="font-bold text-slate-900">Initialize & Ingest Your Backlog</p>
+                                <p class="mt-0.5 leading-relaxed">Select <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">setupSheetAndTrigger</code> in the Apps Script toolbar and click <strong>Run</strong>. Grant permissions. It will automatically create columns, ingest your first batch of unread emails, and set a 5-minute auto-sync timer.</p>
+                            </div>
+                        </li>
+                        <li class="flex space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 border border-slate-300 text-slate-800 font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
+                            <div>
+                                <p class="font-bold text-slate-900">Deploy as Web App API</p>
+                                <p class="mt-0.5 leading-relaxed">Click <strong>Deploy &rarr; New deployment</strong>. Select type <strong>Web app</strong>. Set <em>Execute as:</em> <strong>Me</strong> and <em>Who has access:</em> <strong>Anyone</strong>. Click Deploy and copy the <strong>Web App URL</strong>.</p>
+                            </div>
+                        </li>
+                        <li class="flex space-x-3">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 border border-slate-300 text-slate-800 font-bold flex items-center justify-center shrink-0 mt-0.5">5</span>
+                            <div>
+                                <p class="font-bold text-slate-900">Paste URL into PulseDesk</p>
+                                <p class="mt-0.5 leading-relaxed">Click the <strong>Demo Sandbox Mode / Gear</strong> button at the top right of this dashboard and paste your Web App URL. Your live Gmail backlog will load immediately!</p>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="bg-amber-50 border border-amber-200/80 rounded-xl p-3.5 text-xs text-amber-900 space-y-1">
+                        <p class="font-bold flex items-center"><i class="fa-solid fa-bolt text-amber-600 mr-1.5"></i>Pro Tip for 1,000+ Pending Emails:</p>
+                        <p class="text-[11px] leading-relaxed text-amber-800">
+                            Gmail Apps Script limits execution to 6 minutes per run. The script below processes <strong>50 unread threads per batch</strong> (<code class="font-mono">MAX_BATCH_SIZE = 50</code>) and runs every 5 minutes—safely converting <strong>600+ emails/hour</strong> without hitting Google quota limits.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right 7 Cols: Copy-Paste Google Apps Script (Code.gs) -->
+                <div class="lg:col-span-7 bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden flex flex-col">
+                    <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="ml-2 font-mono text-xs text-slate-300 font-semibold">Code.gs — Google Apps Script Backend</span>
+                        </div>
+                        <button onclick="copyAppsScriptCode()" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition flex items-center space-x-1.5">
+                            <i class="fa-regular fa-copy"></i>
+                            <span id="copy-code-btn-text">Copy Complete Code.gs</span>
+                        </button>
+                    </div>
+                    <pre id="apps-script-code" class="p-4 text-[11px] font-mono text-slate-200 overflow-x-auto leading-relaxed max-h-[540px] select-all">/**
+ * PULSEDESK — GMAIL TO GOOGLE SHEETS TICKET ENGINE & WEB APP API
+ * 1. Converts unread Gmail threads into structured tickets in batches
+ * 2. Auto-assigns Priority & Category using keyword triage rules
+ * 3. Serves JSON API (doGet / doPost) for the HTML Ticket Dashboard
+ */
+
+const SHEET_NAME = 'Tickets';
+const PROCESSED_LABEL = 'Ticketed';
+const MAX_BATCH_SIZE = 50; // Safe batch size for large email backlogs
+
+/**
+ * RUN THIS ONCE: Initializes Sheet headers, Gmail label & 5-min cron trigger
+ */
+function setupSheetAndTrigger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      'TicketID', 'ThreadID', 'Timestamp', 'CustomerName',
+      'CustomerEmail', 'Subject', 'Body', 'Category',
+      'Priority', 'Status', 'Resolution', 'ResolvedAt'
+    ]);
+    sheet.getRange('A1:L1').setFontWeight('bold').setBackground('#f1f5f9');
+  }
+  // Ensure Gmail label exists
+  if (!GmailApp.getUserLabelByName(PROCESSED_LABEL)) {
+    GmailApp.createLabel(PROCESSED_LABEL);
+  }
+  // Ingest initial batch right away
+  ingestUnreadEmailsToTickets();
+
+  // Create 5-minute automated trigger if not already set
+  const triggers = ScriptApp.getProjectTriggers();
+  const exists = triggers.some(t => t.getHandlerFunction() === 'ingestUnreadEmailsToTickets');
+  if (!exists) {
+    ScriptApp.newTrigger('ingestUnreadEmailsToTickets')
+      .timeBased()
+      .everyMinutes(5)
+      .create();
+  }
+}
+
+/**
+ * CORE ENGINE: Pulls unread emails, classifies priority/category & logs tickets
+ */
+function ingestUnreadEmailsToTickets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  let label = GmailApp.getUserLabelByName(PROCESSED_LABEL);
+  if (!label) label = GmailApp.createLabel(PROCESSED_LABEL);
+
+  // Query unread inbox emails that haven't been converted yet
+  const query = 'is:unread label:inbox -label:' + PROCESSED_LABEL;
+  const threads = GmailApp.search(query, 0, MAX_BATCH_SIZE);
+  if (threads.length === 0) return 0;
+
+  const newRows = [];
+  threads.forEach(thread => {
+    const messages = thread.getMessages();
+    const firstMsg = messages[0];
+    const rawFrom = firstMsg.getFrom();
+    const parsedSender = parseSenderString(rawFrom);
+    const subject = firstMsg.getSubject() || '(No Subject)';
+    const body = firstMsg.getPlainBody().substring(0, 4000);
+    const triage = autoClassifyEmail(subject, body);
+    const ticketId = 'TKT-' + Math.floor(1000 + Math.random() * 9000);
+
+    newRows.push([
+      ticketId,
+      thread.getId(),
+      firstMsg.getDate().toISOString(),
+      parsedSender.name,
+      parsedSender.email,
+      subject,
+      body,
+      triage.category,
+      triage.priority,
+      'Open',
+      '',
+      ''
+    ]);
+
+    thread.addLabel(label);
+    thread.markRead();
+  });
+
+  // Bulk write to Google Sheet in a single fast I/O operation
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 12).setValues(newRows);
+  }
+  return newRows.length;
+}
+
+/**
+ * KEYWORD TRIAGE CLASSIFIER: Assigns Priority & Category automatically
+ */
+function autoClassifyEmail(subject, body) {
+  const text = (subject + ' ' + body).toLowerCase();
+  let priority = 'Medium';
+  let category = 'General';
+
+  if (/urgent|outage|down|charged twice|unauthorized|breach|asap|critical/.test(text)) {
+    priority = 'Urgent';
+  } else if (/error|failed|refund|invoice|locked|cannot login|bug/.test(text)) {
+    priority = 'High';
+  } else if (/question|how to|feature|feedback/.test(text)) {
+    priority = 'Low';
+  }
+
+  if (/invoice|refund|charge|billing|payment|subscription/.test(text)) {
+    category = 'Billing';
+  } else if (/bug|error|crash|api|500|broken|slow/.test(text)) {
+    category = 'Technical';
+  } else if (/login|password|2fa|account|locked|access/.test(text)) {
+    category = 'Account';
+  } else if (/order|shipping|tracking|delivery|package/.test(text)) {
+    category = 'Shipping';
+  }
+
+  return { priority, category };
+}
+
+function parseSenderString(raw) {
+  const match = raw.match(/(.*)&lt;(.+)&gt;/);
+  if (match) {
+    return { name: match[1].replace(/"/g, '').trim() || match[2], email: match[2].trim() };
+  }
+  return { name: raw.split('@')[0], email: raw.trim() };
+}
+
+/**
+ * GET API: Fetches all tickets for the HTML Dashboard
+ */
+function doGet(e) {
+  const action = (e && e.parameter && e.parameter.action) || 'list';
+  if (action === 'sync') {
+    const ingested = ingestUnreadEmailsToTickets();
+    return jsonResponse({ status: 'ok', ingestedCount: ingested, tickets: getSheetTickets() });
+  }
+  return jsonResponse({ status: 'ok', tickets: getSheetTickets() });
+}
+
+/**
+ * POST API: Handles Single Reply & Resolve, Bulk Resolve, or Status Updates
+ */
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    const data = sheet.getDataRange().getValues();
+
+    if (payload.action === 'resolve' || payload.action === 'bulkResolve') {
+      const targetIds = payload.ticketIds || [payload.ticketId];
+      const replyBody = payload.replyMessage;
+      const sendEmail = payload.sendEmail !== false;
+      const nowIso = new Date().toISOString();
+
+      for (let i = 1; i &lt; data.length; i++) {
+        const rowTicketId = data[i][0];
+        if (targetIds.indexOf(rowTicketId) !== -1) {
+          const threadId = data[i][1];
+          // Reply directly to the customer's Gmail thread
+          if (sendEmail && threadId && replyBody) {
+            try {
+              const thread = GmailApp.getThreadById(threadId);
+              if (thread) thread.reply(replyBody);
+            } catch (mailErr) {
+              // Fallback to sendEmail if thread ID not found
+              GmailApp.sendEmail(data[i][4], 'Re: ' + data[i][5] + ' [' + rowTicketId + ']', replyBody);
+            }
+          }
+          sheet.getRange(i + 1, 10).setValue('Resolved');
+          sheet.getRange(i + 1, 11).setValue(replyBody);
+          sheet.getRange(i + 1, 12).setValue(nowIso);
+        }
+      }
+      return jsonResponse({ status: 'ok', updated: targetIds.length });
+    }
+    return jsonResponse({ status: 'ok' });
+  } catch (err) {
+    return jsonResponse({ status: 'error', message: err.toString() });
+  }
+}
+
+function getSheetTickets() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet || sheet.getLastRow() &lt;= 1) return [];
+  const rows = sheet.getDataRange().getValues();
+  rows.shift();
+  return rows.map(r => ({
+    id: r[0], threadId: r[1], timestamp: r[2], customerName: r[3],
+    customerEmail: r[4], subject: r[5], body: r[6], category: r[7],
+    priority: r[8], status: r[9], resolution: r[10], resolvedAt: r[11]
+  })).reverse();
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+                </div>
+
             </div>
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- MODAL 1: BACKEND API CONNECTION CONFIG     -->
+    <!-- ========================================== -->
+    <div id="config-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <i class="fa-solid fa-plug text-indigo-400"></i>
+                    <h3 class="text-sm font-bold">Connect Google Apps Script Web App API</h3>
+                </div>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <p class="text-slate-600 leading-relaxed">
+                    Paste your deployed Google Apps Script <strong>Web App URL</strong> below to sync real unread Gmail emails and store tickets in your Google Sheet. Leave blank to use the built-in interactive sandbox dataset.
+                </p>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1.5">Google Apps Script Endpoint URL</label>
+                    <input type="url" id="api-url-input" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-xs text-slate-800 focus:outline-none focus:border-brand-600">
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1 text-[11px] text-slate-500">
+                    <div class="font-semibold text-slate-700">How this works:</div>
+                    <p>• <strong>GET requests</strong> fetch your live Sheet rows & trigger batch Gmail ingestion.</p>
+                    <p>• <strong>POST requests</strong> dispatch your reply via <code class="font-mono">GmailApp</code> and mark rows Resolved.</p>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <button onclick="disconnectApiUrl()" class="text-xs font-medium text-rose-600 hover:underline">
+                    Reset to Demo Sandbox
+                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="closeConfigModal()" class="px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium text-xs">
+                        Cancel
+                    </button>
+                    <button onclick="saveApiUrl()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-sm">
+                        Save & Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 2: BULK REPLY & RESOLVE BACKLOG      -->
+    <!-- ========================================== -->
+    <div id="bulk-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 bg-indigo-950 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+                    <h3 class="text-sm font-bold">Bulk Reply & Resolve (<span id="bulk-modal-count">0</span> Tickets)</h3>
+                </div>
+                <button onclick="closeBulkResolveModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <p class="text-slate-600 leading-relaxed">
+                    Clear your email backlog fast: this message will be sent to all selected customers' email threads and mark their tickets as <strong>Resolved</strong> immediately.
+                </p>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1.5">Choose Bulk Response Template</label>
+                    <select onchange="applyBulkMacro(this.value)" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-xs font-medium text-slate-700 focus:outline-none focus:border-brand-600">
+                        <option value="">Select a bulk resolution macro...</option>
+                        <option value="incident_resolved">✅ Service Incident Resolved — All Systems Operational</option>
+                        <option value="billing_batch">💳 Billing Delay Notice — Refund Processed</option>
+                        <option value="shipping_batch">🚚 High-Volume Dispatch Update — Tracking Active</option>
+                        <option value="general_closure">🙌 Issue Addressed & Closed — Support Follow-up</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1.5">Email Reply Message</label>
+                    <textarea id="bulk-reply-textarea" rows="5" placeholder="Hello, We wanted to let you know that your reported issue has been resolved by our team..." class="w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-800 focus:outline-none focus:border-brand-600"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+                <button onclick="closeBulkResolveModal()" class="px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium text-xs">
+                    Cancel
+                </button>
+                <button onclick="executeBulkResolve()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm flex items-center space-x-1.5">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>Send Bulk Replies & Resolve All</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 3: MANUAL / SIMULATED EMAIL TICKET   -->
+    <!-- ========================================== -->
+    <div id="new-ticket-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-envelope-circle-check text-indigo-400"></i>
+                    <h3 class="text-sm font-bold">Simulate Incoming Customer Email &rarr; Ticket</h3>
+                </div>
+                <button onclick="closeNewTicketModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-3.5 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Customer Name</label>
+                        <input type="text" id="new-cust-name" placeholder="e.g. Rohan Mehta" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Customer Email</label>
+                        <input type="email" id="new-cust-email" placeholder="rohan@company.com" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Email Subject (Auto-triage keywords supported)</label>
+                    <input type="text" id="new-subject" placeholder="e.g. URGENT: Charged twice on invoice #4810" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Email Body</label>
+                    <textarea id="new-body" rows="4" placeholder="Paste customer email content here. Our classifier will automatically detect Priority and Category..." class="w-full px-3 py-2 rounded-lg border border-slate-300"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+                <button onclick="closeNewTicketModal()" class="px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium text-xs">
+                    Cancel
+                </button>
+                <button onclick="createSimulatedTicket()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-sm">
+                    Convert Email to Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- ========================================== -->
+    <!-- APPLICATION JAVASCRIPT                     -->
+    <!-- ========================================== -->
     <script>
-        let studentsData = [];
-        let feedbackRecords = JSON.parse(localStorage.getItem('brisharks_feedbacks') || '[]');
-        let currentStudent = null;
-        let autosaveInterval = null;
-        let chartInstances = [];
-
-        const allSentimentQuestions = [
-            'f_smoothness', 'f_video', 'f_website', 'f_founder', 'f_clarity', 'f_excitement', 'f_pitch'
+        // --- INITIAL REALISTIC EMAIL BACKLOG DATA ---
+        const initialTickets = [
+            {
+                id: 'TKT-8942',
+                threadId: 'thread_192f8a11c',
+                timestamp: '10 mins ago',
+                customerName: 'Ananya Rao',
+                customerEmail: 'ananya.rao@finverse.io',
+                subject: 'URGENT: Double charged $299 on annual Pro subscription renewal',
+                body: `Hi Support Team,\n\nI just noticed two identical charges of $299.00 on our corporate Visa card ending in 4419 for Invoice #INV-2026-991.\n\nCan you please void/refund the duplicate charge immediately and send over an updated receipt for our finance audit?\n\nThanks,\nAnanya Rao\nVP Finance, Finverse`,
+                category: 'Billing',
+                priority: 'Urgent',
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8941',
+                threadId: 'thread_192f8704b',
+                timestamp: '24 mins ago',
+                customerName: 'Marcus Vance',
+                customerEmail: 'mvance@cloudscale.dev',
+                subject: 'Webhook API returning HTTP 502 Bad Gateway on /v2/events',
+                body: `Hello Engineering Support,\n\nStarting around 09:15 UTC today, our production webhook listener began receiving 502 errors when syncing order payloads to your /v2/events endpoint.\n\nWe have 1,400 queued events waiting. Is there a known degradation or rate-limit change on our API key?\n\nBest,\nMarcus Vance`,
+                category: 'Technical',
+                priority: 'Urgent',
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8939',
+                threadId: 'thread_192f8190d',
+                timestamp: '48 mins ago',
+                customerName: 'Priya Nair',
+                customerEmail: 'priya.nair@luminahealth.in',
+                subject: 'Locked out of Admin Console after changing 2FA authenticator phone',
+                body: `Hi team,\n\nI upgraded my phone yesterday and lost access to my Google Authenticator codes for priya.nair@luminahealth.in.\n\nBecause I am the primary workspace owner, I cannot approve the team's pending seats. Please reset my 2FA or send a recovery bypass link ASAP.`,
+                category: 'Account',
+                priority: 'High',
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8936',
+                threadId: 'thread_192f7822e',
+                timestamp: '1 hr ago',
+                customerName: 'David Lindqvist',
+                customerEmail: 'd.lindqvist@nordicgear.se',
+                subject: 'Bulk order #ORD-77412 stuck in "Label Created" for 4 days',
+                body: `Hello,\n\nWe placed an expedited order (#ORD-77412) for 25 hardware kits earlier this week. The tracking link still says "Shipping Label Created - Awaiting Carrier Pickup".\n\nOur client installation is scheduled for Monday morning. Can you check with your warehouse dispatch?`,
+                category: 'Shipping',
+                priority: 'High',
+                status: 'In Progress',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8934',
+                threadId: 'thread_192f7019a',
+                timestamp: '2 hrs ago',
+                customerName: 'Elena Rostova',
+                customerEmail: 'elena@studioverve.co',
+                subject: 'Requesting GST / VAT tax ID addition to past 3 monthly invoices',
+                body: `Good afternoon,\n\nOur accounting department requires our updated VAT registration number (EU88492011) added to the PDF invoices from August, September, and October.\n\nCould you regenerate those three PDFs and email them back to this thread?`,
+                category: 'Billing',
+                priority: 'Medium',
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8930',
+                threadId: 'thread_192f6488c',
+                timestamp: '3 hrs ago',
+                customerName: 'Karthik Subramanian',
+                customerEmail: 'karthik@nexgenlabs.ai',
+                subject: 'SSO SAML metadata certificate rotation instructions',
+                body: `Hi Support,\n\nOur Okta SAML signing certificate expires next Friday. Can we upload the new X.509 certificate in advance without breaking active sessions for our 180 users?\n\nRegards,\nKarthik`,
+                category: 'Technical',
+                priority: 'Medium',
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8925',
+                threadId: 'thread_192f5501f',
+                timestamp: '4 hrs ago',
+                customerName: 'Hannah Abbott',
+                customerEmail: 'habbott@greenleaf.org',
+                subject: 'Non-profit discount eligibility for annual team plan',
+                body: `Hi there!\n\nWe are a registered 501(c)(3) environmental organization looking to migrate 15 staff members to your annual plan. Do you offer non-profit pricing? Attached is our determination letter.\n\nWarmly,\nHannah`,
+                category: 'General',
+                priority: 'Low',
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            },
+            {
+                id: 'TKT-8919',
+                threadId: 'thread_192f4110b',
+                timestamp: '5 hrs ago',
+                customerName: 'Siddharth Verma',
+                customerEmail: 'siddharth@urbanpulse.in',
+                subject: 'Refund confirmation for cancelled seat license',
+                body: `Hello,\n\nWe removed 3 unused contractor seats yesterday before our billing cycle reset. Just confirming the prorated credit will apply automatically.`,
+                category: 'Billing',
+                priority: 'Low',
+                status: 'Resolved',
+                resolution: `Hi Siddharth,\n\nConfirmed! Your prorated credit of $87.00 has been applied to your workspace balance and will automatically offset your next invoice.\n\nBest regards,\nPulseDesk Support`,
+                resolvedAt: 'Today, 11:20 AM'
+            }
         ];
 
-        const sentimentOptions = [
-            { val: 'Bad', class: 'sentiment-radio-bad' },
-            { val: 'Not Satisfied', class: 'sentiment-radio-notsat' },
-            { val: 'Could be better', class: 'sentiment-radio-couldbe' },
-            { val: 'Satisfied', class: 'sentiment-radio-sat' },
-            { val: 'Good', class: 'sentiment-radio-good' }
+        // Queue of simulated unread Gmail emails ready to be ingested when user clicks "Sync & Ingest Emails"
+        const incomingEmailQueue = [
+            {
+                customerName: 'Vikramaditya Sen',
+                customerEmail: 'v.sen@apexlogistics.in',
+                subject: 'URGENT: Production CSV Export failing with timeout error',
+                body: `Team,\n\nWhenever we try exporting our monthly shipment manifest (>50,000 rows), the browser times out after 30 seconds.\n\nWe need this export before 6 PM IST today for customs clearance. Please advise or trigger a backend dump for our account!`,
+                category: 'Technical',
+                priority: 'Urgent'
+            },
+            {
+                customerName: 'Chloe Bennett',
+                customerEmail: 'chloe@brightstaragency.uk',
+                subject: 'Invoice payment failed — updated corporate Amex card on file',
+                body: `Hi Billing Team,\n\nWe received an automated email saying our October renewal failed because our previous card expired. I have just updated our new Amex card in the portal. Can you re-run the charge so our account isn't paused?`,
+                category: 'Billing',
+                priority: 'High'
+            },
+            {
+                customerName: 'Arjun Malhotra',
+                customerEmail: 'arjun.m@kinetixpay.com',
+                subject: 'Unable to invite external auditor with read-only permissions',
+                body: `Hello,\n\nWhen I click "Invite Member" and select the "Read-Only Auditor" role for compliance@deloitte-audit.com, the invite button stays greyed out. Is there a seat limit on guest viewers?`,
+                category: 'Account',
+                priority: 'Medium'
+            }
         ];
 
-        // --- CUSTOM MODAL LOGIC ---
-        function showModal(title, message, type, onConfirm) {
-            const modal = document.getElementById('custom-modal');
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            const actions = document.getElementById('modal-actions');
-            actions.innerHTML = '';
+        // Canned Response Macros for 1-click resolution
+        const CANNED_MACROS = {
+            refund: (name, id) => `Hi ${name},\n\nThank you for reaching out regarding Ticket ${id}.\n\nI have verified your billing ledger and immediately voided and refunded the duplicate charge. You will see the full credit reflected on your original payment method within 3–5 business days, and I have attached the corrected paid invoice receipt to this thread.\n\nPlease reply directly to this email if you need anything else!\n\nBest regards,\nCustomer Billing Support`,
+            password: (name, id) => `Hi ${name},\n\nWe have processed a verified 2FA & security recovery reset for your account (${id}).\n\nPlease use the temporary one-time recovery link sent to your backup email address (valid for 30 minutes) to enroll your new authenticator device.\n\nWarm regards,\nAccount Security Team`,
+            shipping: (name, id) => `Hi ${name},\n\nThank you for flagging your order under Ticket ${id}.\n\nWe contacted our fulfillment warehouse directly—your shipment was scanned into the express carrier network this morning and is now in transit for scheduled Monday delivery. Live tracking updates will refresh within 2 hours.\n\nBest regards,\nOrder Fulfillment Team`,
+            bug: (name, id) => `Hi ${name},\n\nThank you for the detailed report (${id}).\n\nOur engineering team identified the upstream gateway bottleneck and deployed a hotfix patch 15 minutes ago. All queued webhook events and API requests are now processing with 200 OK status.\n\nWe appreciate your patience!\nTechnical Support Engineering`,
+            ack: (name, id) => `Hi ${name},\n\nThank you for contacting us. Your request (${id}) has been reviewed and resolved by our specialist team according to your account specifications.\n\nIf you have any follow-up questions, simply reply to this email and your ticket will automatically reopen.\n\nBest regards,\nPulseDesk Support`
+        };
 
-            if (type === 'alert') {
-                actions.innerHTML = `<button onclick="closeModal()" class="bg-brishark-600 hover:bg-brishark-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition shadow-sm">Got it</button>`;
-            } else if (type === 'confirm') {
-                actions.innerHTML = `
-                    <button onclick="closeModal()" class="px-5 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition">Cancel</button>
-                    <button id="modal-confirm-btn" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition shadow-sm">Yes, proceed</button>
+        const BULK_MACROS = {
+            incident_resolved: `Hello,\n\nWe are writing to confirm that the brief service degradation affecting your recent support ticket has been completely resolved by our engineering team. All services and queued operations are now running normally.\n\nIf you still experience any issues, simply reply to this email to reopen your ticket.\n\nBest regards,\nPulseDesk Operations Team`,
+            billing_batch: `Hello,\n\nOur billing team has completed the audit and adjustment requested in your ticket. Any duplicate authorizations or invoice updates have been processed and will reflect on your statement within 3–5 business days.\n\nThank you for your patience,\nBilling & Finance Support`,
+            shipping_batch: `Hello,\n\nGood news! Your pending order batch has cleared our fulfillment dispatch and been handed over to our express courier partner. Your tracking link is now live.\n\nWarm regards,\nLogistics Support Team`,
+            general_closure: `Hello,\n\nWe have completed the action requested in your email ticket and marked this case as resolved. Should you need any additional assistance, replying to this email will immediately route your message back to a senior specialist.\n\nBest regards,\nCustomer Support`
+        };
+
+        // --- STATE VARIABLES ---
+        let tickets = [...initialTickets];
+        let activeTicketId = initialTickets[0].id;
+        let currentStatusFilter = 'ALL';
+        let selectedTicketIds = new Set();
+        let currentTab = 'workspace';
+        let apiEndpointUrl = localStorage.getItem('pulsedesk_api_url') || '';
+
+        // --- INITIALIZATION ---
+        window.onload = function () {
+            updateConnectionIndicator();
+            renderAll();
+            selectTicket(activeTicketId, false);
+        };
+
+        // --- RENDER PIPELINE ---
+        function renderAll() {
+            updateKPIs();
+            renderTicketTable();
+            updateBulkActionBar();
+        }
+
+        function updateKPIs() {
+            const pendingCount = tickets.filter(t => t.status !== 'Resolved').length;
+            const urgentCount = tickets.filter(t => (t.priority === 'Urgent' || t.priority === 'High') && t.status !== 'Resolved').length;
+            const resolvedCount = tickets.filter(t => t.status === 'Resolved').length;
+            const rate = tickets.length > 0 ? Math.round((resolvedCount / tickets.length) * 100) : 0;
+
+            document.getElementById('kpi-pending').textContent = pendingCount;
+            document.getElementById('kpi-urgent').textContent = urgentCount;
+            document.getElementById('kpi-resolved').textContent = resolvedCount;
+            document.getElementById('kpi-resolution-rate').textContent = `${rate}% Cleared`;
+        }
+
+        function getFilteredTickets() {
+            const query = (document.getElementById('search-input').value || '').trim().toLowerCase();
+            const category = document.getElementById('category-filter').value;
+
+            document.getElementById('clear-search-btn').classList.toggle('hidden', query.length === 0);
+
+            return tickets.filter(t => {
+                // Status or Urgent filter pill
+                if (currentStatusFilter === 'Urgent') {
+                    if (t.priority !== 'Urgent' || t.status === 'Resolved') return false;
+                } else if (currentStatusFilter !== 'ALL') {
+                    if (t.status !== currentStatusFilter) return false;
+                }
+                // Category filter
+                if (category !== 'ALL' && t.category !== category) return false;
+                // Search input
+                if (query) {
+                    const haystack = `${t.id} ${t.customerName} ${t.customerEmail} ${t.subject} ${t.body}`.toLowerCase();
+                    if (!haystack.includes(query)) return false;
+                }
+                return true;
+            });
+        }
+
+        function renderTicketTable() {
+            const tbody = document.getElementById('ticket-table-body');
+            const filtered = getFilteredTickets();
+
+            document.getElementById('showing-count').textContent = filtered.length;
+            document.getElementById('total-count').textContent = tickets.length;
+            document.getElementById('empty-state').classList.toggle('hidden', filtered.length > 0);
+
+            tbody.innerHTML = filtered.map(ticket => {
+                const isSelected = selectedTicketIds.has(ticket.id);
+                const isActive = ticket.id === activeTicketId;
+                const priorityBadge = getPriorityBadgeHTML(ticket.priority);
+                const statusBadge = getStatusBadgeHTML(ticket.status);
+                const isResolved = ticket.status === 'Resolved';
+
+                return `
+                    <tr onclick="selectTicket('${ticket.id}', true)" class="group cursor-pointer transition-colors hover:bg-slate-50/90 border-l-3 border-transparent ${isActive ? 'ticket-row-active' : ''} ${isResolved ? 'opacity-70' : ''}">
+                        <td class="py-3 pl-4 pr-2" onclick="event.stopPropagation()">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleRowCheckbox('${ticket.id}', this.checked)" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                        </td>
+                        <td class="py-3 px-2.5 font-mono font-semibold text-slate-700 whitespace-nowrap">
+                            ${ticket.id}
+                        </td>
+                        <td class="py-3 px-2.5 whitespace-nowrap">
+                            ${priorityBadge}
+                        </td>
+                        <td class="py-3 px-3 max-w-[190px]">
+                            <div class="font-semibold text-slate-900 truncate">${escapeHTML(ticket.customerName)}</div>
+                            <div class="text-[11px] font-mono text-slate-400 truncate">${escapeHTML(ticket.customerEmail)}</div>
+                        </td>
+                        <td class="py-3 px-3 max-w-xs xl:max-w-md">
+                            <div class="font-semibold text-slate-800 truncate ${isResolved ? 'line-through text-slate-500' : ''}">${escapeHTML(ticket.subject)}</div>
+                            <div class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHTML(ticket.body.replace(/\n+/g, ' '))}</div>
+                        </td>
+                        <td class="py-3 px-2.5 whitespace-nowrap hidden xl:table-cell">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[11px] border border-slate-200/80">${ticket.category}</span>
+                        </td>
+                        <td class="py-3 px-2.5 whitespace-nowrap text-slate-400 text-[11px] hidden md:table-cell">
+                            ${ticket.timestamp}
+                        </td>
+                        <td class="py-3 pl-2.5 pr-4 text-right whitespace-nowrap">
+                            ${statusBadge}
+                        </td>
+                    </tr>
                 `;
-                document.getElementById('modal-confirm-btn').onclick = () => {
-                    closeModal();
-                    if(onConfirm) onConfirm();
-                };
-            }
-            modal.classList.remove('hidden');
+            }).join('');
         }
 
-        function closeModal() {
-            document.getElementById('custom-modal').classList.add('hidden');
-        }
-
-        function initUI() {
-            // Build Sentiment Radios
-            allSentimentQuestions.forEach(qId => {
-                const container = document.getElementById(`rad_${qId}`);
-                if(!container) return;
-                let html = '';
-                sentimentOptions.forEach((opt, idx) => {
-                    const uId = `${qId}_${idx}`;
-                    html += `
-                        <div class="flex-1 min-w-[100px]">
-                            <input type="radio" id="${uId}" name="${qId}" value="${opt.val}" class="hidden sentiment-radio ${opt.class}">
-                            <label for="${uId}" class="block text-center px-1 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-xs sm:text-sm font-medium transition-colors">
-                                ${opt.val}
-                            </label>
-                        </div>`;
-                });
-                container.innerHTML = html;
-            });
-
-            // Build NPS 0-10
-            let npsHtml = '';
-            for(let i=0; i<=10; i++) {
-                npsHtml += `
-                    <label class="cursor-pointer">
-                        <input type="radio" name="q_nps_score" value="${i}" class="peer hidden">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 peer-checked:bg-green-500 peer-checked:text-white hover:bg-gray-200 transition-colors font-bold text-sm sm:text-base">${i}</div>
-                    </label>`;
-            }
-            document.getElementById('nps_container').innerHTML = npsHtml;
-
-            // Check if CSV data exists in local storage
-            const savedCSV = localStorage.getItem('brisharks_csv_data');
-            if (savedCSV) {
-                try {
-                    studentsData = JSON.parse(savedCSV);
-                    document.getElementById('upload-status').classList.remove('hidden');
-                    populateStudentDropdown();
-                    enableSection('student-selector-card');
-                } catch(e) { console.error("Error loading saved CSV"); }
-            }
-            
-            // Start silent email checker and autosave
-            startEmailReminderChecker();
-            startAutosave();
-        }
-
-        function handleCSVUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                transformHeader: function(header) { return header.trim().toLowerCase(); },
-                complete: function(results) {
-                    studentsData = results.data;
-                    localStorage.setItem('brisharks_csv_data', JSON.stringify(studentsData));
-                    document.getElementById('upload-status').classList.remove('hidden');
-                    populateStudentDropdown();
-                    enableSection('student-selector-card');
-                }
-            });
-        }
-
-        function populateStudentDropdown() {
-            const dropdown = document.getElementById('student-dropdown');
-            dropdown.innerHTML = '<option value="">-- Select a Student to Interview --</option>';
-            
-            studentsData.forEach(student => {
-                const id = student.id || student.ID;
-                const fname = student.first_name || student['First Name'] || '';
-                const lname = student.last_name || student['Last Name'] || '';
-                if(id) {
-                    // Check status
-                    const record = feedbackRecords.find(r => r.student_id == id);
-                    let prefix = '';
-                    if (record) {
-                        if (record.q_followup_time && new Date(record.q_followup_time) > new Date()) {
-                            prefix = '🔴 [CALL SCHEDULED] ';
-                        } else {
-                            prefix = '🟢 [DONE] ';
-                        }
-                    }
-
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = `${prefix}[ID: ${id}] ${fname} ${lname}`;
-                    dropdown.appendChild(option);
-                }
-            });
-        }
-
-        function loadStudentData() {
-            const dropdown = document.getElementById('student-dropdown');
-            const selectedId = dropdown.value;
-            
-            if (!selectedId) {
-                document.getElementById('student-info').classList.add('hidden');
-                document.getElementById('current-interviewee').textContent = "None selected";
-                disableSection('interview-form-card');
-                currentStudent = null;
-                return;
-            }
-
-            currentStudent = studentsData.find(s => (s.id || s.ID) == selectedId);
-            
-            if (currentStudent) {
-                const fname = currentStudent.first_name || currentStudent['First Name'] || '';
-                const lname = currentStudent.last_name || currentStudent['Last Name'] || '';
-                
-                // Populate Info Card
-                document.getElementById('info-name').textContent = `${fname} ${lname}`;
-                document.getElementById('info-id').textContent = currentStudent.id || currentStudent.ID;
-                document.getElementById('info-email').textContent = currentStudent.email || currentStudent.Email || 'N/A';
-                document.getElementById('info-mobile').textContent = currentStudent.mobile || currentStudent.Mobile || 'N/A';
-                
-                const city = currentStudent.city || currentStudent.City || '';
-                const state = currentStudent.state || currentStudent.State || '';
-                const country = currentStudent.country_id || currentStudent.Country || 'India';
-                document.getElementById('info-location').textContent = [city, state, country].filter(Boolean).join(', ') || 'N/A';
-
-                const websiteVal = currentStudent.website || currentStudent.Website || '';
-                const websiteEl = document.getElementById('info-website');
-                
-                let hasWebsite = false;
-                if(websiteVal && websiteVal.trim() !== '') {
-                    hasWebsite = true;
-                    websiteEl.innerHTML = `<a href="${websiteVal.startsWith('http') ? websiteVal : 'https://'+websiteVal}" target="_blank" class="text-brishark-600 hover:underline font-bold">${websiteVal}</a>`;
-                } else {
-                    websiteEl.textContent = 'No website provided';
-                }
-
-                document.getElementById('info-grade-age').textContent = `Gr: ${currentStudent.grade || '-'} / Age: ${currentStudent.age || '-'}`;
-
-                // Toggle Conditional Form Fields based on website presence
-                if(hasWebsite) {
-                    document.getElementById('cond_website_yes').classList.remove('hidden');
-                    document.getElementById('cond_website_no').classList.add('hidden');
-                    document.getElementById('cond_share_yes').classList.remove('hidden');
-                    document.getElementById('cond_share_no').classList.add('hidden');
-                } else {
-                    document.getElementById('cond_website_yes').classList.add('hidden');
-                    document.getElementById('cond_website_no').classList.remove('hidden');
-                    document.getElementById('cond_share_yes').classList.add('hidden');
-                    document.getElementById('cond_share_no').classList.remove('hidden');
-                }
-
-                document.getElementById('student-info').classList.remove('hidden');
-                document.getElementById('current-interviewee').textContent = `${fname} ${lname}`;
-                
-                enableSection('interview-form-card');
-                document.getElementById('feedbackForm').reset();
-                toggleJourneyFields(); // reset dropdown display
-                document.getElementById('draft-indicator').classList.add('hidden');
-
-                // Restore Draft or Saved Record
-                const draftStr = localStorage.getItem(`brisharks_draft_${selectedId}`);
-                const savedRecord = feedbackRecords.find(r => r.student_id == selectedId);
-                let dataToLoad = savedRecord || (draftStr ? JSON.parse(draftStr) : null);
-
-                if (dataToLoad) {
-                    const fields = ['q_last_login', 'q_aha_moment', 'q_analysis_stage', 'q_comfort_fit', 'q_mentor_need', 'q_shared_friends', 'q_share_plan', 'q_success_feeling', 'q_describe_friend', 'q_new_features', 'q_followup_notes', 'q_followup_time', 'q_journey_status', 'q_completed_reward', 'q_stuck_reason'];
-                    fields.forEach(f => {
-                        if(document.getElementById(f) && dataToLoad[f]) document.getElementById(f).value = dataToLoad[f];
-                    });
-                    toggleJourneyFields(); // apply changes
-
-                    if (dataToLoad.q_nps_score) {
-                        const r = document.querySelector(`input[name="q_nps_score"][value="${dataToLoad.q_nps_score}"]`);
-                        if (r) r.checked = true;
-                    }
-                    
-                    allSentimentQuestions.forEach(qId => {
-                        if (dataToLoad[qId]) {
-                            const r = document.querySelector(`input[name="${qId}"][value="${dataToLoad[qId]}"]`);
-                            if (r) r.checked = true;
-                        }
-                    });
-                    
-                    const indicator = document.getElementById('draft-indicator');
-                    indicator.textContent = savedRecord ? "✓ Saved Data Loaded" : "✓ Draft Loaded";
-                    indicator.className = `text-xs font-bold px-2 py-1 rounded-full ml-2 ${savedRecord ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`;
-                    indicator.classList.remove('hidden');
-                }
-            }
-        }
-
-        function toggleJourneyFields() {
-            const val = document.getElementById('q_journey_status').value;
-            document.getElementById('wrap_completed').classList.add('hidden');
-            document.getElementById('wrap_stuck').classList.add('hidden');
-            if(val === 'Completed') document.getElementById('wrap_completed').classList.remove('hidden');
-            if(val === 'Stuck') document.getElementById('wrap_stuck').classList.remove('hidden');
-        }
-
-        function saveFeedback(event) {
-            event.preventDefault();
-            if (!currentStudent) return;
-
-            let entry = { ...currentStudent }; // copy all original csv columns
-            entry.student_id = currentStudent.id || currentStudent.ID; // Ensure standard ID field
-            entry.timestamp = new Date().toISOString();
-            
-            // Gather text and select fields
-            const textFields = ['q_last_login', 'q_aha_moment', 'q_analysis_stage', 'q_comfort_fit', 'q_mentor_need', 'q_shared_friends', 'q_share_plan', 'q_success_feeling', 'q_describe_friend', 'q_new_features', 'q_followup_notes', 'q_followup_time', 'q_journey_status', 'q_completed_reward', 'q_stuck_reason'];
-            textFields.forEach(f => entry[f] = document.getElementById(f).value);
-
-            // Gather NPS
-            const npsSel = document.querySelector(`input[name="q_nps_score"]:checked`);
-            entry.q_nps_score = npsSel ? npsSel.value : '';
-
-            // Gather Sentiments
-            allSentimentQuestions.forEach(qId => {
-                const selected = document.querySelector(`input[name="${qId}"]:checked`);
-                entry[qId] = selected ? selected.value : '';
-            });
-            entry.email_triggered = false; // reset email trigger on save
-
-            // Update or push
-            const existingIndex = feedbackRecords.findIndex(r => r.student_id == entry.student_id);
-            if (existingIndex > -1) {
-                entry.timestamp = feedbackRecords[existingIndex].timestamp; // keep original timestamp
-                feedbackRecords[existingIndex] = entry;
-            } else {
-                feedbackRecords.push(entry);
-            }
-            
-            // Save to LocalStorage
-            localStorage.setItem('brisharks_feedbacks', JSON.stringify(feedbackRecords));
-            localStorage.removeItem(`brisharks_draft_${entry.student_id}`); // clear draft
-            
-            // UI Feedback
-            const btn = event.target.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            btn.textContent = "✓ Saved Successfully!";
-            btn.classList.replace('bg-brishark-600', 'bg-green-500');
-            
-            populateStudentDropdown(); // Refresh dropdown colors
-            
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.classList.replace('bg-green-500', 'bg-brishark-600');
-                
-                // Auto move to next student
-                const dropdown = document.getElementById('student-dropdown');
-                dropdown.value = entry.student_id; // reselect current
-                if(dropdown.selectedIndex < dropdown.options.length - 1) dropdown.selectedIndex += 1;
-                loadStudentData();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }, 1200);
-        }
-
-        function startAutosave() {
-            setInterval(() => {
-                if (currentStudent) {
-                    const id = currentStudent.id || currentStudent.ID;
-                    let draft = {};
-                    const textFields = ['q_last_login', 'q_aha_moment', 'q_analysis_stage', 'q_comfort_fit', 'q_mentor_need', 'q_shared_friends', 'q_share_plan', 'q_success_feeling', 'q_describe_friend', 'q_new_features', 'q_followup_notes', 'q_followup_time', 'q_journey_status', 'q_completed_reward', 'q_stuck_reason'];
-                    textFields.forEach(f => draft[f] = document.getElementById(f).value);
-                    
-                    const npsSel = document.querySelector(`input[name="q_nps_score"]:checked`);
-                    draft.q_nps_score = npsSel ? npsSel.value : '';
-
-                    allSentimentQuestions.forEach(qId => {
-                        const sel = document.querySelector(`input[name="${qId}"]:checked`);
-                        draft[qId] = sel ? sel.value : '';
-                    });
-                    
-                    localStorage.setItem(`brisharks_draft_${id}`, JSON.stringify(draft));
-                    
-                    const ind = document.getElementById('draft-indicator');
-                    if (ind.textContent !== "✓ Saved Data Loaded") {
-                        ind.textContent = "✓ Draft Autosaved";
-                        ind.className = "text-[10px] font-bold px-2 py-1 bg-gray-100 text-gray-500 rounded-full ml-2";
-                        ind.classList.remove('hidden');
-                    }
-                }
-            }, 5000);
-        }
-
-        function startEmailReminderChecker() {
-            setInterval(() => {
-                const now = new Date();
-                let needsSave = false;
-                
-                feedbackRecords.forEach(record => {
-                    if (record.q_followup_time && !record.email_triggered) {
-                        const scheduledTime = new Date(record.q_followup_time);
-                        if (now >= scheduledTime) {
-                            // Trigger Mailto
-                            const fname = record.first_name || record['First Name'] || 'Student';
-                            const subject = encodeURIComponent(`Follow-up Reminder: ${fname} (ID: ${record.student_id})`);
-                            const body = encodeURIComponent(`Reminder to call ${fname}.\n\nNotes: ${record.q_followup_notes || 'No specific notes.'}\nScheduled for: ${scheduledTime.toLocaleString()}`);
-                            window.location.href = `mailto:yash@bribooks.com?subject=${subject}&body=${body}`;
-                            
-                            record.email_triggered = true;
-                            needsSave = true;
-                        }
-                    }
-                });
-                
-                if (needsSave) {
-                    localStorage.setItem('brisharks_feedbacks', JSON.stringify(feedbackRecords));
-                    populateStudentDropdown(); // update 🔴 to 🟢
-                }
-            }, 30000); // Check every 30 seconds
-        }
-
-        function exportAllData() {
-            if (feedbackRecords.length === 0) {
-                showModal("Export Notice", "No feedback records are available to export yet. Please submit some entries first.", "alert");
-                return;
-            }
-            const csv = Papa.unparse(feedbackRecords);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `BriSharks_Feedback_${new Date().getTime()}.csv`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        }
-
-        function clearAllData() {
-            showModal("Confirm Deletion", "Are you sure? This will delete all cached CSV data and interview drafts (saved feedback records will remain intact).", "confirm", () => {
-                localStorage.removeItem('brisharks_csv_data');
-                location.reload();
-            });
-        }
-
-        function toggleView(view) {
-            document.getElementById('view-interview').classList.toggle('hidden', view !== 'interview');
-            document.getElementById('view-analytics').classList.toggle('hidden', view !== 'analytics');
-            
-            document.getElementById('btn-view-interview').classList.toggle('opacity-70', view !== 'interview');
-            document.getElementById('btn-view-interview').classList.toggle('ring-2', view === 'interview');
-            
-            document.getElementById('btn-view-analytics').classList.toggle('opacity-70', view !== 'analytics');
-            document.getElementById('btn-view-analytics').classList.toggle('ring-2', view === 'analytics');
-            
-            if (view === 'analytics') updateAnalytics();
-        }
-
-        function updateAnalytics() {
-            document.getElementById('dash-total').textContent = feedbackRecords.length;
-            if(feedbackRecords.length === 0) return;
-
-            // Destroy existing charts to prevent overlap on reload
-            chartInstances.forEach(chart => chart.destroy());
-            chartInstances = [];
-
-            // 1. Data Aggregation Variables
-            let npsTotal = 0, promoters = 0, passives = 0, detractors = 0;
-            let totalJourney = 0, completedCount = 0, stuckCount = 0, progressCount = 0, droppedCount = 0;
-            let successTotal = 0, successYesAbs = 0, successYesSome = 0, successNotReal = 0, successNo = 0;
-            
-            // Feature sentiment structure
-            const featureMap = {
-                'f_smoothness': 'Smoothness', 'f_video': 'Videos', 'f_website': 'Website', 
-                'f_founder': 'Founder Page', 'f_clarity': 'Clarity', 'f_excitement': 'Excitement', 'f_pitch': 'Pitch'
+        function getPriorityBadgeHTML(priority) {
+            const styles = {
+                'Urgent': 'bg-rose-50 text-rose-700 border-rose-200/90',
+                'High': 'bg-amber-50 text-amber-700 border-amber-200/90',
+                'Medium': 'bg-indigo-50 text-indigo-700 border-indigo-200/90',
+                'Low': 'bg-slate-100 text-slate-600 border-slate-200'
             };
-            let sentimentData = {};
-            Object.keys(featureMap).forEach(k => {
-                sentimentData[k] = { 'Bad':0, 'Not Satisfied':0, 'Could be better':0, 'Satisfied':0, 'Good':0 };
-            });
-
-            // Text Feeds HTML
-            let htmlRoadblocks = '', htmlFeatures = '', htmlAha = '';
-
-            // 2. Loop and Aggregate User Data
-            feedbackRecords.forEach(r => {
-                // NPS Breakdown
-                if(r.q_nps_score) {
-                    npsTotal++;
-                    const s = parseInt(r.q_nps_score);
-                    if(s >= 9) promoters++;
-                    else if(s >= 7) passives++;
-                    else detractors++;
-                }
-
-                // Journey Status Breakdown
-                if(r.q_journey_status) {
-                    totalJourney++;
-                    if(r.q_journey_status === 'Completed') completedCount++;
-                    if(r.q_journey_status === 'Stuck') stuckCount++;
-                    if(r.q_journey_status === 'In Progress') progressCount++;
-                    if(r.q_journey_status === 'Dropped Out') droppedCount++;
-                }
-
-                // Success Emotion Breakdown
-                if(r.q_success_feeling) {
-                    successTotal++;
-                    if(r.q_success_feeling === 'Yes, absolutely') successYesAbs++;
-                    if(r.q_success_feeling === 'Yes, somewhat') successYesSome++;
-                    if(r.q_success_feeling === 'Not really') successNotReal++;
-                    if(r.q_success_feeling === 'No') successNo++;
-                }
-
-                // Individual Feature Sentiments
-                allSentimentQuestions.forEach(qId => {
-                    if(r[qId] && sentimentData[qId] && sentimentData[qId][r[qId]] !== undefined) {
-                        sentimentData[qId][r[qId]]++;
-                    }
-                });
-
-                // Populate Qualitative Text Feeds
-                const nameTag = `<span class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-wider">ID: ${r.student_id} | ${r.first_name || r['First Name'] || 'Student'}</span>`;
-                
-                if(r.q_journey_status === 'Stuck' && r.q_stuck_reason) {
-                    htmlRoadblocks += `<div class="bg-white p-3 rounded-lg border border-red-100 shadow-sm border-l-2 border-l-red-500">${nameTag}<p class="text-gray-800">"${r.q_stuck_reason}"</p></div>`;
-                }
-                if(r.q_new_features) {
-                    htmlFeatures += `<div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">${nameTag}<p class="text-gray-800">"${r.q_new_features}"</p></div>`;
-                }
-                if(r.q_aha_moment) {
-                    htmlAha += `<div class="bg-white p-3 rounded-lg border border-purple-100 shadow-sm border-l-2 border-l-purple-400">${nameTag}<p class="text-gray-800">"${r.q_aha_moment}"</p></div>`;
-                }
-            });
-
-            // 3. Update UI Metrics & Insert Feeds
-            document.getElementById('feed-roadblocks').innerHTML = htmlRoadblocks || '<div class="text-gray-400 italic">No roadblocks reported yet.</div>';
-            document.getElementById('feed-features').innerHTML = htmlFeatures || '<div class="text-gray-400 italic">No feature requests yet.</div>';
-            document.getElementById('feed-aha').innerHTML = htmlAha || '<div class="text-gray-400 italic">No Aha! moments recorded yet.</div>';
-            document.getElementById('dash-stuck-count').textContent = stuckCount;
-
-            if(npsTotal > 0) {
-                const npsScore = Math.round(((promoters/npsTotal) - (detractors/npsTotal)) * 100);
-                const el = document.getElementById('dash-nps');
-                el.innerHTML = `${npsScore} <span class="text-sm font-normal text-gray-400">(${npsTotal} votes)</span>`;
-                el.className = `text-3xl font-black flex items-baseline gap-1 ${npsScore > 0 ? 'text-green-500' : (npsScore < 0 ? 'text-red-500' : 'text-gray-500')}`;
-            }
-            if(totalJourney > 0) document.getElementById('dash-completion').textContent = Math.round((completedCount/totalJourney)*100) + '%';
-            if(successTotal > 0) document.getElementById('dash-success').textContent = Math.round(((successYesAbs + successYesSome)/successTotal)*100) + '%';
-
-            // 4. Render Interactive Chart.js Configurations
-            const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } };
-
-            // Chart A: Feature Sentiment (Stacked Bar)
-            const featureLabels = Object.values(featureMap);
-            const datasets = [
-                { label: 'Bad', backgroundColor: '#ef4444', data: [] },
-                { label: 'Not Satisfied', backgroundColor: '#f97316', data: [] },
-                { label: 'Could be better', backgroundColor: '#eab308', data: [] },
-                { label: 'Satisfied', backgroundColor: '#84cc16', data: [] },
-                { label: 'Good', backgroundColor: '#22c55e', data: [] }
-            ];
-            
-            Object.keys(featureMap).forEach(key => {
-                datasets[0].data.push(sentimentData[key]['Bad']);
-                datasets[1].data.push(sentimentData[key]['Not Satisfied']);
-                datasets[2].data.push(sentimentData[key]['Could be better']);
-                datasets[3].data.push(sentimentData[key]['Satisfied']);
-                datasets[4].data.push(sentimentData[key]['Good']);
-            });
-
-            chartInstances.push(new Chart(document.getElementById('chart-features').getContext('2d'), {
-                type: 'bar',
-                data: { labels: featureLabels, datasets: datasets },
-                options: { ...chartOptions, scales: { x: { stacked: true }, y: { stacked: true } } }
-            }));
-
-            // Chart B: NPS Breakdown (Doughnut)
-            chartInstances.push(new Chart(document.getElementById('chart-nps').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Promoters (9-10)', 'Passives (7-8)', 'Detractors (0-6)'],
-                    datasets: [{ data: [promoters, passives, detractors], backgroundColor: ['#22c55e', '#eab308', '#ef4444'], hoverOffset: 4 }]
-                },
-                options: chartOptions
-            }));
-
-            // Chart C: Journey Status (Pie)
-            chartInstances.push(new Chart(document.getElementById('chart-journey').getContext('2d'), {
-                type: 'pie',
-                data: {
-                    labels: ['Completed', 'In Progress', 'Stuck', 'Dropped Out'],
-                    datasets: [{ data: [completedCount, progressCount, stuckCount, droppedCount], backgroundColor: ['#8b5cf6', '#3b82f6', '#ef4444', '#94a3b8'], hoverOffset: 4 }]
-                },
-                options: chartOptions
-            }));
-
-            // Chart D: PMF Success Feeling (Bar)
-            chartInstances.push(new Chart(document.getElementById('chart-success').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['Yes, absolutely', 'Yes, somewhat', 'Not really', 'No'],
-                    datasets: [{ label: 'Total Votes', data: [successYesAbs, successYesSome, successNotReal, successNo], backgroundColor: ['#10b981', '#34d399', '#fbbf24', '#f87171'], borderRadius: 4 }]
-                },
-                options: { ...chartOptions, plugins: { legend: { display: false } } }
-            }));
+            const dot = {
+                'Urgent': 'bg-rose-500 animate-pulse',
+                'High': 'bg-amber-500',
+                'Medium': 'bg-indigo-500',
+                'Low': 'bg-slate-400'
+            };
+            return `
+                <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${styles[priority] || styles.Medium}">
+                    <span class="w-1.5 h-1.5 rounded-full ${dot[priority] || dot.Medium}"></span>
+                    <span>${priority}</span>
+                </span>
+            `;
         }
 
-        // Utility
-        function enableSection(id) { const el = document.getElementById(id); el.style.opacity = '1'; el.style.pointerEvents = 'auto'; }
-        function disableSection(id) { const el = document.getElementById(id); el.style.opacity = '0.5'; el.style.pointerEvents = 'none'; }
+        function getStatusBadgeHTML(status) {
+            if (status === 'Resolved') {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1 text-[9px]"></i>Resolved</span>`;
+            }
+            if (status === 'In Progress') {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200"><i class="fa-solid fa-spinner mr-1 text-[9px]"></i>In Progress</span>`;
+            }
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">Open</span>`;
+        }
 
-        // Boot
-        window.onload = initUI;
+        // --- TICKET SELECTION & DETAIL DRAWER ---
+        function selectTicket(id, openMobileDrawer = true) {
+            activeTicketId = id;
+            const ticket = tickets.find(t => t.id === id);
+            renderTicketTable();
+
+            const drawerEmpty = document.getElementById('drawer-empty');
+            const drawerContent = document.getElementById('drawer-content');
+            const drawer = document.getElementById('ticket-drawer');
+
+            if (!ticket) {
+                drawerEmpty.classList.remove('hidden');
+                drawerContent.classList.add('hidden');
+                return;
+            }
+
+            drawerEmpty.classList.add('hidden');
+            drawerContent.classList.remove('hidden');
+            if (openMobileDrawer) {
+                drawer.classList.remove('translate-x-full');
+            }
+
+            // Populate fields
+            document.getElementById('detail-id').textContent = ticket.id;
+            document.getElementById('detail-thread-id').textContent = ticket.threadId;
+            document.getElementById('detail-priority-select').value = ticket.priority;
+            document.getElementById('detail-status-select').value = ticket.status;
+            document.getElementById('detail-category-badge').textContent = ticket.category;
+            document.getElementById('detail-timestamp').textContent = ticket.timestamp;
+            document.getElementById('detail-subject').textContent = ticket.subject;
+            document.getElementById('detail-customer-name').textContent = ticket.customerName;
+            document.getElementById('detail-customer-email').textContent = ticket.customerEmail;
+            document.getElementById('detail-body').textContent = ticket.body;
+
+            const initials = ticket.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById('detail-avatar').textContent = initials;
+
+            // Show previous resolution if resolved
+            const resBox = document.getElementById('detail-resolution-box');
+            if (ticket.resolution) {
+                resBox.classList.remove('hidden');
+                document.getElementById('detail-resolution-text').textContent = ticket.resolution;
+                document.getElementById('detail-resolved-at').textContent = ticket.resolvedAt || 'Resolved';
+            } else {
+                resBox.classList.add('hidden');
+            }
+
+            // Reset composer
+            document.getElementById('macro-select').value = '';
+            document.getElementById('reply-textarea').value = '';
+        }
+
+        function closeDrawerMobile() {
+            document.getElementById('ticket-drawer').classList.add('translate-x-full');
+        }
+
+        function updateActiveTicketField(field, value) {
+            const ticket = tickets.find(t => t.id === activeTicketId);
+            if (!ticket) return;
+            ticket[field] = value;
+            if (field === 'status' && value === 'Resolved' && !ticket.resolvedAt) {
+                ticket.resolvedAt = 'Just now';
+            }
+            renderAll();
+            selectTicket(activeTicketId, false);
+            showToast(`Updated ${ticket.id} ${field} to "${value}"`, 'info');
+        }
+
+        // --- FAST MACROS & SMART AI DRAFTING ---
+        function applyCannedMacro(macroKey) {
+            if (!macroKey) return;
+            const ticket = tickets.find(t => t.id === activeTicketId);
+            if (!ticket) return;
+            const firstName = ticket.customerName.split(' ')[0];
+            const templateFn = CANNED_MACROS[macroKey];
+            if (templateFn) {
+                document.getElementById('reply-textarea').value = templateFn(firstName, ticket.id);
+            }
+        }
+
+        function generateSmartDraft() {
+            const ticket = tickets.find(t => t.id === activeTicketId);
+            if (!ticket) return;
+
+            const categoryToMacro = {
+                'Billing': 'refund',
+                'Account': 'password',
+                'Shipping': 'shipping',
+                'Technical': 'bug',
+                'General': 'ack'
+            };
+            const key = categoryToMacro[ticket.category] || 'ack';
+            applyCannedMacro(key);
+            showToast(`Generated contextual draft for ${ticket.category} ticket`, 'success');
+        }
+
+        // --- SINGLE TICKET REPLY & RESOLVE ---
+        async function submitReplyAndResolve() {
+            const ticket = tickets.find(t => t.id === activeTicketId);
+            if (!ticket) return;
+
+            const replyText = document.getElementById('reply-textarea').value.trim();
+            if (!replyText) {
+                showToast('Please enter a reply or choose a Quick Macro before resolving.', 'warning');
+                document.getElementById('reply-textarea').focus();
+                return;
+            }
+
+            const sendEmail = document.getElementById('send-email-checkbox').checked;
+            const btn = document.getElementById('resolve-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i><span>Sending...</span>`;
+
+            // If live Google Apps Script endpoint is configured, send POST request
+            if (apiEndpointUrl) {
+                try {
+                    await fetch(apiEndpointUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'resolve',
+                            ticketId: ticket.id,
+                            replyMessage: replyText,
+                            sendEmail: sendEmail
+                        })
+                    });
+                } catch (e) {
+                    console.warn('API POST fallback to local state:', e);
+                }
+            } else {
+                await new Promise(r => setTimeout(r, 450));
+            }
+
+            ticket.status = 'Resolved';
+            ticket.resolution = replyText;
+            ticket.resolvedAt = 'Just now';
+
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane text-[11px]"></i><span>Send Reply & Resolve</span>`;
+
+            renderAll();
+            selectTicket(ticket.id, false);
+            showToast(
+                sendEmail
+                    ? `Replied to ${ticket.customerEmail} via Gmail thread & resolved ${ticket.id}`
+                    : `Marked ${ticket.id} as Resolved`,
+                'success'
+            );
+
+            // Auto-advance to next open ticket in backlog for rapid triage
+            const nextOpen = getFilteredTickets().find(t => t.status !== 'Resolved' && t.id !== ticket.id);
+            if (nextOpen) {
+                setTimeout(() => selectTicket(nextOpen.id, false), 600);
+            }
+        }
+
+        function saveNoteOrProgress() {
+            const ticket = tickets.find(t => t.id === activeTicketId);
+            if (!ticket) return;
+            const replyText = document.getElementById('reply-textarea').value.trim();
+            ticket.status = 'In Progress';
+            if (replyText) {
+                ticket.resolution = `[Draft / Internal Note]: ${replyText}`;
+            }
+            renderAll();
+            selectTicket(ticket.id, false);
+            showToast(`${ticket.id} marked as In Progress`, 'info');
+        }
+
+        // --- BULK SELECTION & MASS BACKLOG RESOLUTION ---
+        function toggleRowCheckbox(id, checked) {
+            if (checked) {
+                selectedTicketIds.add(id);
+            } else {
+                selectedTicketIds.delete(id);
+            }
+            updateBulkActionBar();
+            renderTicketTable();
+        }
+
+        function toggleSelectAll(masterCheckbox) {
+            const filtered = getFilteredTickets();
+            if (masterCheckbox.checked) {
+                filtered.forEach(t => selectedTicketIds.add(t.id));
+            } else {
+                selectedTicketIds.clear();
+            }
+            updateBulkActionBar();
+            renderTicketTable();
+        }
+
+        function selectAllOpenTickets() {
+            selectedTicketIds.clear();
+            const openFiltered = getFilteredTickets().filter(t => t.status !== 'Resolved');
+            openFiltered.forEach(t => selectedTicketIds.add(t.id));
+            updateBulkActionBar();
+            renderTicketTable();
+            if (openFiltered.length > 0) {
+                showToast(`Selected ${openFiltered.length} open tickets for bulk action`, 'info');
+            } else {
+                showToast('No open tickets in current view', 'warning');
+            }
+        }
+
+        function clearBulkSelection() {
+            selectedTicketIds.clear();
+            document.getElementById('master-checkbox').checked = false;
+            updateBulkActionBar();
+            renderTicketTable();
+        }
+
+        function updateBulkActionBar() {
+            const bar = document.getElementById('bulk-action-bar');
+            const count = selectedTicketIds.size;
+            document.getElementById('selected-count').textContent = count;
+            if (count > 0) {
+                bar.classList.remove('hidden');
+                bar.classList.add('flex');
+            } else {
+                bar.classList.add('hidden');
+                bar.classList.remove('flex');
+            }
+        }
+
+        function bulkChangePriority(newPriority) {
+            if (selectedTicketIds.size === 0) return;
+            tickets.forEach(t => {
+                if (selectedTicketIds.has(t.id)) {
+                    t.priority = newPriority;
+                }
+            });
+            showToast(`Escalated ${selectedTicketIds.size} tickets to ${newPriority}`, 'info');
+            clearBulkSelection();
+            renderAll();
+        }
+
+        function openBulkResolveModal() {
+            if (selectedTicketIds.size === 0) return;
+            document.getElementById('bulk-modal-count').textContent = selectedTicketIds.size;
+            document.getElementById('bulk-reply-textarea').value = BULK_MACROS.general_closure;
+            document.getElementById('bulk-modal').classList.remove('hidden');
+        }
+
+        function closeBulkResolveModal() {
+            document.getElementById('bulk-modal').classList.add('hidden');
+        }
+
+        function applyBulkMacro(key) {
+            if (BULK_MACROS[key]) {
+                document.getElementById('bulk-reply-textarea').value = BULK_MACROS[key];
+            }
+        }
+
+        async function executeBulkResolve() {
+            const message = document.getElementById('bulk-reply-textarea').value.trim();
+            if (!message) {
+                showToast('Please enter a bulk reply message', 'warning');
+                return;
+            }
+            const ids = Array.from(selectedTicketIds);
+
+            if (apiEndpointUrl) {
+                try {
+                    await fetch(apiEndpointUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'bulkResolve',
+                            ticketIds: ids,
+                            replyMessage: message,
+                            sendEmail: true
+                        })
+                    });
+                } catch (err) {
+                    console.warn('Bulk API fallback:', err);
+                }
+            }
+
+            tickets.forEach(t => {
+                if (selectedTicketIds.has(t.id)) {
+                    t.status = 'Resolved';
+                    t.resolution = message;
+                    t.resolvedAt = 'Just now (Bulk Resolved)';
+                }
+            });
+
+            closeBulkResolveModal();
+            clearBulkSelection();
+            renderAll();
+            selectTicket(activeTicketId, false);
+            showToast(`Resolved & emailed ${ids.length} customer tickets in bulk!`, 'success');
+        }
+
+        // --- SYNC & INGEST BULK EMAILS ---
+        async function syncBulkEmails() {
+            const btn = document.getElementById('sync-btn');
+            const icon = document.getElementById('sync-icon');
+            const label = document.getElementById('sync-label');
+
+            btn.disabled = true;
+            icon.classList.add('fa-spin');
+            label.textContent = 'Scanning Gmail Inbox...';
+
+            if (apiEndpointUrl) {
+                try {
+                    const res = await fetch(`${apiEndpointUrl}?action=sync`);
+                    const data = await res.json();
+                    if (data && Array.isArray(data.tickets)) {
+                        tickets = data.tickets;
+                        showToast(`Synced with Google Sheets (${data.ingestedCount || 0} new emails converted)`, 'success');
+                    }
+                } catch (err) {
+                    showToast('Connected endpoint unreachable — ingested simulated inbox batch instead.', 'warning');
+                    ingestSimulatedEmailBatch();
+                }
+            } else {
+                await new Promise(r => setTimeout(r, 900));
+                ingestSimulatedEmailBatch();
+            }
+
+            document.getElementById('last-sync-time').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            icon.classList.remove('fa-spin');
+            label.textContent = 'Sync & Ingest Emails';
+            btn.disabled = false;
+
+            renderAll();
+        }
+
+        function ingestSimulatedEmailBatch() {
+            if (incomingEmailQueue.length === 0) {
+                // Generate a fresh dynamic incoming email ticket if queue exhausted
+                const randNum = Math.floor(1000 + Math.random() * 8999);
+                const sample = {
+                    id: `TKT-${randNum}`,
+                    threadId: `thread_${Math.random().toString(16).slice(2, 10)}`,
+                    timestamp: 'Just now',
+                    customerName: 'Neha Kapoor',
+                    customerEmail: `neha.k${randNum}@vervecommerce.in`,
+                    subject: `Order #ORD-${randNum} invoice & GST receipt request`,
+                    body: `Hello Support,\n\nCould you please share the downloadable tax invoice for our recent order #ORD-${randNum}? We need it for our monthly filing.\n\nThanks,\nNeha`,
+                    category: 'Billing',
+                    priority: 'Medium',
+                    status: 'Open',
+                    resolution: '',
+                    resolvedAt: ''
+                };
+                tickets.unshift(sample);
+                activeTicketId = sample.id;
+                selectTicket(sample.id, false);
+                showToast('1 new unread email converted into Ticket ' + sample.id, 'success');
+                return;
+            }
+
+            const countToPull = Math.min(2, incomingEmailQueue.length);
+            for (let i = 0; i < countToPull; i++) {
+                const raw = incomingEmailQueue.shift();
+                const newId = 'TKT-' + (8943 + tickets.length);
+                tickets.unshift({
+                    id: newId,
+                    threadId: 'thread_' + Math.random().toString(16).substring(2, 10),
+                    timestamp: 'Just now',
+                    customerName: raw.customerName,
+                    customerEmail: raw.customerEmail,
+                    subject: raw.subject,
+                    body: raw.body,
+                    category: raw.category,
+                    priority: raw.priority,
+                    status: 'Open',
+                    resolution: '',
+                    resolvedAt: ''
+                });
+            }
+            activeTicketId = tickets[0].id;
+            selectTicket(activeTicketId, false);
+            showToast(`Ingested & auto-classified ${countToPull} unread emails into tickets!`, 'success');
+        }
+
+        // --- CREATE SIMULATED EMAIL TICKET MODAL ---
+        function openNewTicketModal() {
+            document.getElementById('new-ticket-modal').classList.remove('hidden');
+        }
+        function closeNewTicketModal() {
+            document.getElementById('new-ticket-modal').classList.add('hidden');
+        }
+
+        function autoClassifyFrontend(subject, body) {
+            const text = `${subject} ${body}`.toLowerCase();
+            let priority = 'Medium';
+            let category = 'General';
+
+            if (/urgent|outage|down|charged twice|unauthorized|breach|asap|critical/.test(text)) {
+                priority = 'Urgent';
+            } else if (/error|failed|refund|invoice|locked|cannot login|bug/.test(text)) {
+                priority = 'High';
+            } else if (/question|how to|feature|feedback/.test(text)) {
+                priority = 'Low';
+            }
+
+            if (/invoice|refund|charge|billing|payment|subscription/.test(text)) {
+                category = 'Billing';
+            } else if (/bug|error|crash|api|500|broken|slow/.test(text)) {
+                category = 'Technical';
+            } else if (/login|password|2fa|account|locked|access/.test(text)) {
+                category = 'Account';
+            } else if (/order|shipping|tracking|delivery|package/.test(text)) {
+                category = 'Shipping';
+            }
+            return { priority, category };
+        }
+
+        function createSimulatedTicket() {
+            const name = document.getElementById('new-cust-name').value.trim() || 'Customer User';
+            const email = document.getElementById('new-cust-email').value.trim() || 'user@example.com';
+            const subject = document.getElementById('new-subject').value.trim();
+            const body = document.getElementById('new-body').value.trim();
+
+            if (!subject || !body) {
+                showToast('Please enter both an email subject and body', 'warning');
+                return;
+            }
+
+            const triage = autoClassifyFrontend(subject, body);
+            const newId = 'TKT-' + Math.floor(8950 + Math.random() * 900);
+            const newTicket = {
+                id: newId,
+                threadId: 'thread_' + Math.random().toString(16).substring(2, 10),
+                timestamp: 'Just now',
+                customerName: name,
+                customerEmail: email,
+                subject: subject,
+                body: body,
+                category: triage.category,
+                priority: triage.priority,
+                status: 'Open',
+                resolution: '',
+                resolvedAt: ''
+            };
+
+            tickets.unshift(newTicket);
+            closeNewTicketModal();
+            document.getElementById('new-cust-name').value = '';
+            document.getElementById('new-cust-email').value = '';
+            document.getElementById('new-subject').value = '';
+            document.getElementById('new-body').value = '';
+
+            renderAll();
+            selectTicket(newId, true);
+            showToast(`Converted email to ${newId} [Auto-triaged: ${triage.priority} • ${triage.category}]`, 'success');
+        }
+
+        // --- FILTERS & SEARCH ---
+        function setStatusFilter(filter) {
+            currentStatusFilter = filter;
+            document.querySelectorAll('.status-pill').forEach(btn => {
+                if (btn.getAttribute('data-filter') === filter) {
+                    btn.className = 'status-pill px-2.5 py-1 rounded-md text-xs font-semibold transition bg-white text-slate-900 shadow-sm';
+                } else {
+                    btn.className = 'status-pill px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-600 hover:text-slate-900';
+                }
+            });
+            applyFilters();
+        }
+
+        function applyFilters() {
+            renderTicketTable();
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('category-filter').value = 'ALL';
+            setStatusFilter('ALL');
+        }
+
+        // --- TAB NAVIGATION & CONFIG MODAL ---
+        function switchMainTab(tab) {
+            currentTab = tab;
+            const wsView = document.getElementById('view-workspace');
+            const guideView = document.getElementById('view-guide');
+            const wsBtn = document.getElementById('tab-btn-workspace');
+            const guideBtn = document.getElementById('tab-btn-guide');
+            const mobileLabel = document.getElementById('mobile-tab-label');
+
+            if (tab === 'workspace') {
+                wsView.classList.remove('hidden');
+                guideView.classList.add('hidden');
+                wsBtn.className = 'px-3 py-1.5 rounded-md text-xs font-medium transition-all bg-brand-600 text-white shadow-sm flex items-center space-x-2';
+                guideBtn.className = 'px-3 py-1.5 rounded-md text-xs font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50 flex items-center space-x-2';
+                mobileLabel.textContent = 'Setup Guide';
+            } else {
+                wsView.classList.add('hidden');
+                guideView.classList.remove('hidden');
+                guideBtn.className = 'px-3 py-1.5 rounded-md text-xs font-medium transition-all bg-brand-600 text-white shadow-sm flex items-center space-x-2';
+                wsBtn.className = 'px-3 py-1.5 rounded-md text-xs font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-700/50 flex items-center space-x-2';
+                mobileLabel.textContent = 'Tickets';
+            }
+        }
+
+        function openConfigModal() {
+            document.getElementById('api-url-input').value = apiEndpointUrl;
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function saveApiUrl() {
+            const val = document.getElementById('api-url-input').value.trim();
+            apiEndpointUrl = val;
+            localStorage.setItem('pulsedesk_api_url', val);
+            updateConnectionIndicator();
+            closeConfigModal();
+            if (val) {
+                showToast('Connected to Google Apps Script Web App API! Syncing...', 'success');
+                syncBulkEmails();
+            } else {
+                showToast('Switched to local Demo Sandbox Mode', 'info');
+            }
+        }
+
+        function disconnectApiUrl() {
+            apiEndpointUrl = '';
+            localStorage.removeItem('pulsedesk_api_url');
+            document.getElementById('api-url-input').value = '';
+            updateConnectionIndicator();
+            closeConfigModal();
+            showToast('Reset to Demo Sandbox Mode', 'info');
+        }
+
+        function updateConnectionIndicator() {
+            const dot = document.getElementById('conn-dot');
+            const text = document.getElementById('conn-text');
+            if (apiEndpointUrl) {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+                text.textContent = 'Apps Script Live';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+                text.textContent = 'Demo Sandbox Mode';
+            }
+        }
+
+        // --- CLIPBOARD HELPERS ---
+        function copyAppsScriptCode() {
+            const code = document.getElementById('apps-script-code').innerText;
+            copyTextToClipboard(code);
+            const label = document.getElementById('copy-code-btn-text');
+            label.textContent = 'Copied to Clipboard!';
+            setTimeout(() => { label.textContent = 'Copy Complete Code.gs'; }, 2200);
+            showToast('Copied Google Apps Script Code.gs to clipboard', 'success');
+        }
+
+        function copyCustomerEmail() {
+            const email = document.getElementById('detail-customer-email').textContent;
+            copyTextToClipboard(email);
+            showToast(`Copied ${email}`, 'info');
+        }
+
+        function copyTextToClipboard(text) {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-slate-900 border-emerald-500/40 text-white',
+                warning: 'bg-amber-950 border-amber-500/40 text-amber-100',
+                info: 'bg-slate-900 border-indigo-500/40 text-white'
+            };
+            const icons = {
+                success: '<i class="fa-solid fa-circle-check text-emerald-400"></i>',
+                warning: '<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>',
+                info: '<i class="fa-solid fa-bolt text-indigo-400"></i>'
+            };
+            toast.className = `pointer-events-auto flex items-center space-x-2.5 px-4 py-2.5 rounded-xl border shadow-xl text-xs font-medium transition-all duration-200 ${colors[type] || colors.info}`;
+            toast.innerHTML = `${icons[type] || icons.info}<span>${escapeHTML(message)}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 200);
+            }, 3400);
+        }
+
+        function escapeHTML(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
     </script>
 </body>
 </html>
